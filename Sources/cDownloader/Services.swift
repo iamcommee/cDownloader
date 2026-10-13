@@ -138,8 +138,8 @@ enum DockIcon {
         if policy == .regular { NSApp.activate(ignoringOtherApps: true) }
     }
 
-    /// Called before a window is asked to open: switching from menu-bar-only back to a Dock app while the window is
-    /// already opening makes macOS redraw it mid-animation, which flashes a line along the sidebar edge.
+    /// Called before a window is asked to open, so the Dock icon is back by the time it shows. (The line that flashed
+    /// along the sidebar edge on reopening came from the divider strip, see `SidebarDivider`.)
     static func showInDock() {
         guard NSApp.activationPolicy() != .regular else { return }
         NSApp.setActivationPolicy(.regular)

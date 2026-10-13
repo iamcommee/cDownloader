@@ -32,5 +32,9 @@ let package = Package(
             name: "cDownloaderCoreTests",
             dependencies: ["cDownloaderCore"]
         ),
+        .testTarget(
+            name: "cDownloaderAppTests",
+            dependencies: ["cDownloader"]
+        ),
     ]
 )

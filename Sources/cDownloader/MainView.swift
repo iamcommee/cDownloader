@@ -32,6 +32,7 @@ struct MainView: View {
             }
             .animation(.easeInOut(duration: 0.25), value: model.completionBanner)
         }
+        .background(SidebarDividerFix())
         .searchable(text: $model.searchText, placement: .toolbar, prompt: "Search downloads")
         .toolbar { toolbar }
         .navigationTitle(title)
@@ -333,5 +334,45 @@ enum FolderPicker {
         panel.canChooseDirectories = false
         if !types.isEmpty { panel.allowedContentTypes = types }
         return panel.runModal() == .OK ? panel.url : nil
+    }
+}
+
+/// The line between the sidebar and the list is a one-point strip that shows what is behind the window, stacked over
+/// the list's edge. When the closed window reopens and the app comes to the front, macOS can draw that strip one
+/// pixel too wide for a frame or two, which flashes a see-through line down the list's edge. Blending the strip within
+/// the window removes the flash; the sidebar itself keeps showing what is behind the window.
+@MainActor
+enum SidebarDivider {
+    /// Switches the see-through parts of every side-by-side split view's dividers under `root`; columns stay as they are.
+    static func blendWithinWindow(in root: NSView) {
+        if let split = root as? NSSplitView, split.isVertical {
+            for part in split.subviews where !split.arrangedSubviews.contains(part) {
+                for material in materials(in: part) where material.blendingMode == .behindWindow {
+                    material.blendingMode = .withinWindow
+                }
+            }
+        }
+        for child in root.subviews { blendWithinWindow(in: child) }
+    }
+
+    private static func materials(in view: NSView) -> [NSVisualEffectView] {
+        [view as? NSVisualEffectView].compactMap { $0 } + view.subviews.flatMap(materials)
+    }
+}
+
+/// Applies `SidebarDivider` to the window it is placed in, once the split view next to it is built.
+struct SidebarDividerFix: NSViewRepresentable {
+    func makeNSView(context: Context) -> NSView { Anchor() }
+
+    func updateNSView(_ nsView: NSView, context: Context) {}
+
+    /// Applies the fix whenever it lands in a window, on the next turn, so the split view beside it exists by then.
+    final class Anchor: NSView {
+        override func viewDidMoveToWindow() {
+            super.viewDidMoveToWindow()
+            DispatchQueue.main.async { [weak self] in
+                if let root = self?.window?.contentView { SidebarDivider.blendWithinWindow(in: root) }
+            }
+        }
     }
 }

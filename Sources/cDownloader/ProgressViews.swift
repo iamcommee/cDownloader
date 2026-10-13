@@ -285,7 +285,7 @@ struct MenuBarContent: View {
         Button("Quit cDownloader") { NSApp.terminate(nil) }
     }
 
-    /// Back in the Dock and active first, then the window: it opens once, without a redraw halfway through.
+    /// Back in the Dock and active first, then the window, so it opens in front.
     private func showMainWindow() {
         DockIcon.showInDock()
         NSApp.activate(ignoringOtherApps: true)
