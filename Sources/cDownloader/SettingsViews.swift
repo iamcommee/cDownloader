@@ -57,6 +57,10 @@ struct GeneralSettings: View {
             Toggle("Take over downloads from browsers", isOn: model.setting(\.browserIntegration))
             Toggle("Watch the clipboard for download links", isOn: model.setting(\.clipboardMonitoring))
             Toggle("Show the icon in the menu bar", isOn: model.setting(\.showMenuBarIcon))
+            Toggle("Keep running in the menu bar when the window is closed", isOn: model.setting(\.hideDockIconWhenClosed))
+                .disabled(!model.library.settings.showMenuBarIcon)
+            Text("With no window open, cDownloader leaves the Dock and keeps downloading. Its icon in the menu bar opens it again or quits it. This needs the menu bar icon.")
+                .font(.caption).foregroundStyle(.secondary)
             Section("Special keys when clicking a link in the browser") {
                 Picker("Hold to let the browser download", selection: model.setting(\.browser.skipModifier)) {
                     Text("None").tag(String?.none)
@@ -186,12 +190,14 @@ struct DownloadSettings: View {
         Form {
             Section("Windows") {
                 Toggle("Ask where to save before starting (Download File Info)", isOn: model.setting(\.showStartDialog))
-                Picker("Progress window", selection: model.setting(\.progressWindow)) {
-                    Text("Show").tag(ProgressWindowMode.show)
-                    Text("Show in the background").tag(ProgressWindowMode.minimized)
-                    Text("Don't show").tag(ProgressWindowMode.hidden)
+                Picker("When a download starts", selection: Binding(
+                    get: { model.library.settings.progressWindow == .hidden ? ProgressWindowMode.hidden : .show },
+                    set: { model.library.settings.progressWindow = $0 }
+                )) {
+                    Text("Select it, to show its progress under the list").tag(ProgressWindowMode.show)
+                    Text("Keep the current selection").tag(ProgressWindowMode.hidden)
                 }
-                Toggle("Show a window when a download completes", isOn: model.setting(\.showCompleteDialog))
+                Toggle("Show a banner in the main window when a download completes", isOn: model.setting(\.showCompleteDialog))
             }
             Section("Behavior") {
                 Toggle("Ignore file date changes when resuming", isOn: model.setting(\.ignoreModificationTimeChanges))
@@ -367,7 +373,7 @@ struct SpeedLimiterSettingsView: View {
                 Text("KB/s")
             }
             Toggle("Always turn the limiter on when cDownloader opens", isOn: model.setting(\.speedLimiter.turnOnAtStartup))
-            Text("Each download's progress window also has its own limit. Very low limits can make some servers drop the connection.")
+            Text("Each download can also have its own limit, in the details panel under the list. Very low limits can make some servers drop the connection.")
                 .font(.caption).foregroundStyle(.secondary)
         }
         .formStyle(.grouped)

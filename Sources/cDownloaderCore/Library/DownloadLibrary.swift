@@ -22,6 +22,16 @@ public final class DownloadLibrary {
     @ObservationIgnored public var onQuitRequested: () -> Void = {}
     @ObservationIgnored public var onShowWindow: () -> Void = {}
     @ObservationIgnored public var onQueueFinished: (DownloadQueue) -> Void = { _ in }
+    /// How a finished download's file is thrown away when it is deleted with its file. Tests replace it.
+    @ObservationIgnored public var discardFile: @Sendable (URL) -> Void = DownloadLibrary.moveToTrash
+
+    /// Moves a file to the Trash, so a mistake can be undone; deletes it when the Trash cannot take it (for
+    /// example on a network drive).
+    public static let moveToTrash: @Sendable (URL) -> Void = { url in
+        if (try? FileManager.default.trashItem(at: url, resultingItemURL: nil)) == nil {
+            try? FileManager.default.removeItem(at: url)
+        }
+    }
 
     @ObservationIgnored public let engine: DownloadEngine
     @ObservationIgnored public let runner: QueueRunner
@@ -330,8 +340,9 @@ public final class DownloadLibrary {
             progress[id] = nil
             quitAfter.remove(id)
             removeTemporaryFiles(of: id)
-            if deleteFiles, item.status == .completed {
-                try? FileManager.default.removeItem(at: item.destinationURL)
+            // Only a finished download owns the file at its name; an unfinished one only had partial data.
+            if deleteFiles, item.status == .completed, FileManager.default.fileExists(atPath: item.destinationURL.path) {
+                discardFile(item.destinationURL)
             }
             engine.limiter.remove(id)
         }

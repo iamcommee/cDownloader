@@ -34,8 +34,8 @@ enum Snapshots {
                 case "batch": model.showBatch = true
                 case "dropTarget": model.request(.dropTarget)
                 default:
-                    if name.hasPrefix("progress"), let first = model.library.items.first { model.request(.progress(first.id)) }
-                    if name.hasPrefix("complete"), let first = model.library.items.first { model.request(.complete(first.id)) }
+                    if name.hasPrefix("progress"), let first = model.library.items.first { model.selection = [first.id] }
+                    if name.hasPrefix("complete"), let first = model.library.items.first { model.showCompletionBanner(for: first.id) }
                 }
             }
         }

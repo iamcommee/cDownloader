@@ -20,21 +20,6 @@ struct CDownloaderApp: App {
         .defaultSize(width: 1100, height: 620)
         .commands { AppCommands(model: model) }
 
-        WindowGroup("Download Progress", id: "progress", for: UUID.self) { $id in
-            if let id {
-                ProgressWindow(itemID: id).environment(model)
-            }
-        }
-        .defaultSize(width: 520, height: 420)
-        .windowResizability(.contentSize)
-
-        WindowGroup("Download Complete", id: "complete", for: UUID.self) { $id in
-            if let id {
-                CompleteWindow(itemID: id).environment(model)
-            }
-        }
-        .windowResizability(.contentSize)
-
         Window("Scheduler", id: "scheduler") {
             SchedulerView().environment(model)
         }

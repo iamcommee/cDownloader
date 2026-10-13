@@ -5,7 +5,7 @@ import SwiftUI
 /// The main list of downloads with IDM's columns; columns can be hidden and reordered.
 struct DownloadTable: View {
     @Environment(AppModel.self) private var model
-    @Environment(\.openWindow) private var openWindow
+    @AppStorage("showDetailsPanel") private var showDetailsPanel = true
     @State private var sortOrder = [KeyPathComparator(\DownloadRow.dateAdded, order: .reverse)]
     @AppStorage("tableColumns") private var columnStorage = TableColumnCustomization<DownloadRow>()
 
@@ -107,7 +107,8 @@ struct DownloadTable: View {
         if item.status == .completed {
             NSWorkspace.shared.open(item.destinationURL)
         } else {
-            openWindow(id: "progress", value: id)
+            model.selection = [id]
+            showDetailsPanel = true
         }
     }
 }
@@ -145,7 +146,7 @@ struct StatusCell: View {
 struct RowMenu: View {
     let ids: Set<UUID>
     @Environment(AppModel.self) private var model
-    @Environment(\.openWindow) private var openWindow
+    @AppStorage("showDetailsPanel") private var showDetailsPanel = true
 
     var body: some View {
         let items = ids.compactMap { model.library.item($0) }
@@ -169,7 +170,7 @@ struct RowMenu: View {
             Button("Redownload") { ids.forEach { model.library.redownload($0) } }
             Button("Refresh Download Address") { ids.forEach { model.library.requestAddressRefresh($0) } }
                 .help("Open the download page again in your browser; cDownloader takes the new link for this file")
-            Button("Show Progress") { ids.forEach { openWindow(id: "progress", value: $0) } }
+            Button("Show Progress") { model.selection = ids; showDetailsPanel = true }
             Divider()
             Menu("Move to Queue") {
                 ForEach(model.library.queues) { queue in
@@ -187,10 +188,15 @@ struct RowMenu: View {
             }
             Divider()
             Button("Properties…") { model.propertiesItem = first }
-            Button("Delete", role: .destructive) {
+            Button("Remove from List") {
                 model.library.remove(ids, deleteFiles: false)
                 model.selection.subtract(ids)
             }
+            Button("Remove and Move File to Trash", role: .destructive) {
+                model.library.remove(ids, deleteFiles: true)
+                model.selection.subtract(ids)
+            }
+            .help("Removes the download and moves its file to the Trash; unfinished downloads lose their partial data")
         }
     }
 

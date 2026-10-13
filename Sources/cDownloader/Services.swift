@@ -108,6 +108,43 @@ enum LaunchAtLogin {
     }
 }
 
+/// Menu-bar-only mode: while no cDownloader window is open, the Dock icon goes away and the app keeps running in
+/// the menu bar, like a tray app. The icon comes back as soon as a window opens.
+@MainActor
+enum DockIcon {
+    private static var started = false
+
+    static func start(model: AppModel) {
+        guard !started else { return }
+        started = true
+        let center = NotificationCenter.default
+        center.addObserver(forName: NSWindow.willCloseNotification, object: nil, queue: .main) { note in
+            let closing = note.object as? NSWindow
+            MainActor.assumeIsolated { update(settings: model.library.settings, closing: closing) }
+        }
+        center.addObserver(forName: NSWindow.didBecomeKeyNotification, object: nil, queue: .main) { _ in
+            MainActor.assumeIsolated { update(settings: model.library.settings, closing: nil) }
+        }
+    }
+
+    /// Hides the Dock icon when no window is left open (not counting `closing`), and only while the menu bar icon
+    /// is shown, so the app can always be reached.
+    static func update(settings: AppSettings, closing: NSWindow?) {
+        let windowOpen = NSApp.windows.contains { $0 !== closing && ($0.isVisible || $0.isMiniaturized) && counts($0) }
+        let hide = settings.hideDockIconWhenClosed && settings.showMenuBarIcon && !windowOpen
+        let policy: NSApplication.ActivationPolicy = hide ? .accessory : .regular
+        guard NSApp.activationPolicy() != policy else { return }
+        NSApp.setActivationPolicy(policy)
+        if policy == .regular { NSApp.activate(ignoringOtherApps: true) }
+    }
+
+    /// The app's own windows count; the floating drop target and the menu bar menu do not.
+    private static func counts(_ window: NSWindow) -> Bool {
+        guard window.styleMask.contains(.titled), !(window is NSPanel) else { return false }
+        return !(window.identifier?.rawValue.hasPrefix("dropTarget") ?? false)
+    }
+}
+
 /// Registers the browser helper and finds the bundled add-on folder.
 enum BrowserIntegration {
     static var hostExecutable: URL? {

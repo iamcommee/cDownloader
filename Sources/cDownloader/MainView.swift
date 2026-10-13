@@ -7,6 +7,7 @@ struct MainView: View {
     @Environment(\.openWindow) private var openWindow
     @Environment(\.openSettings) private var openSettings
     @State private var confirmDelete = false
+    @AppStorage("showDetailsPanel") private var showDetailsPanel = true
 
     var body: some View {
         @Bindable var model = model
@@ -14,7 +15,22 @@ struct MainView: View {
             SidebarView()
                 .navigationSplitViewColumnWidth(min: 190, ideal: 220)
         } detail: {
-            DownloadTable()
+            VStack(spacing: 0) {
+                DownloadTable()
+                if showDetailsPanel {
+                    Divider()
+                    DownloadDetailsPanel()
+                }
+            }
+            .overlay(alignment: .top) {
+                if let id = model.completionBanner, let item = model.library.item(id) {
+                    CompletionBanner(item: item)
+                        .padding(.top, 10)
+                        .padding(.horizontal, 16)
+                        .transition(.move(edge: .top).combined(with: .opacity))
+                }
+            }
+            .animation(.easeInOut(duration: 0.25), value: model.completionBanner)
         }
         .searchable(text: $model.searchText, placement: .toolbar, prompt: "Search downloads")
         .toolbar { toolbar }
@@ -35,7 +51,7 @@ struct MainView: View {
         .sheet(item: $model.propertiesItem) { item in PropertiesSheet(item: item) }
         .confirmationDialog("Delete the selected downloads?", isPresented: $confirmDelete) {
             Button("Remove from List") { model.library.remove(model.selection, deleteFiles: false); model.selection = [] }
-            Button("Remove and Move Files to Trash", role: .destructive) { deleteWithFiles() }
+            Button("Remove and Move Files to Trash", role: .destructive) { model.library.remove(model.selection, deleteFiles: true); model.selection = [] }
         } message: {
             Text("Unfinished downloads lose their partial data.")
         }
@@ -58,20 +74,10 @@ struct MainView: View {
     private func open(_ request: WindowRequest) {
         switch request {
         case .main: openWindow(id: "main")
-        case .progress(let id): openWindow(id: "progress", value: id)
-        case .complete(let id): openWindow(id: "complete", value: id)
         case .scheduler: openWindow(id: "scheduler")
         case .grabber(let id): openWindow(id: "grabber", value: id ?? UUID())
         case .dropTarget: openWindow(id: "dropTarget")
         }
-    }
-
-    private func deleteWithFiles() {
-        for item in model.selectedItems where item.status == .completed {
-            try? FileManager.default.trashItem(at: item.destinationURL, resultingItemURL: nil)
-        }
-        model.library.remove(model.selection, deleteFiles: true)
-        model.selection = []
     }
 
     private var title: String {
@@ -110,6 +116,10 @@ struct MainView: View {
                 .disabled(model.selection.isEmpty)
             Button { model.library.removeCompleted() } label: { Label("Delete Completed", systemImage: "checkmark.circle.badge.xmark") }
                 .help("Remove all finished downloads from the list (files stay)")
+            Button { showDetailsPanel.toggle() } label: {
+                Label(showDetailsPanel ? "Hide Details" : "Show Details", systemImage: "rectangle.bottomthird.inset.filled")
+            }
+            .help("Show or hide the selected download's progress under the list")
         }
         ToolbarItemGroup(placement: .primaryAction) {
             Menu {

@@ -305,6 +305,8 @@ import Testing
             configuration.retryDelay = 0.05
             configuration.timeout = 10
         }
+        let discarded = DiscardRecorder()
+        library.discardFile = discarded.discard
         var main = try #require(library.queues.first { $0.id == DownloadQueue.mainDownloadID })
         main.concurrentDownloads = 1
         library.updateQueue(main)
@@ -323,6 +325,7 @@ import Testing
         let deadline = Date().addingTimeInterval(15)
         while library.item(first.id)?.status != .downloading, Date() < deadline { try await Task.sleep(for: .milliseconds(20)) }
         library.remove([first.id], deleteFiles: true)
+        #expect(discarded.urls.isEmpty, "T19-03: a download still running has no finished file to throw away")
         while library.item(second.id)?.status != .completed, Date() < deadline { try await Task.sleep(for: .milliseconds(20)) }
         #expect(library.item(second.id)?.status == .completed)
         #expect(!library.isQueueRunning(DownloadQueue.mainDownloadID))

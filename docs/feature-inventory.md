@@ -24,7 +24,7 @@ None of IDM's program code, artwork or name is used in cDownloader. Only the beh
 | HTTP, HTTPS and FTP | Download protocols | All three; FTP in passive mode with resume | `Engine/HTTPTransport.swift`, `Engine/FTPTransport.swift` |
 | Logins | Asks for a user name and password; "Site Logins" remembers them by address | Same; passwords in the Keychain | `Support/ConnectionRules.swift`, `Persistence/SecretStore.swift` |
 | Proxy | Manual or system proxy, with exceptions | Same (HTTP, HTTPS, SOCKS) | `ProxyConfigurator` |
-| Speed Limiter | Global limit, plus a limit per download from its progress window | Same | `Engine/SpeedLimiter.swift` |
+| Speed Limiter | Global limit, plus a limit per download from its progress window | Same, with the per-download limit in the details panel under the list | `Engine/SpeedLimiter.swift` |
 | Download limits | "At most X MB every Y hours" | Same | `DownloadQuota` |
 | Categories | Folders and file types per category, suggested automatically | Same six categories, editable | `Model/DownloadCategory.swift` |
 | Queues | Main download queue, synchronization queue, any number of custom queues; N files at once; failed files move to the end; a lone failing file retries every 30 seconds | Same rules | `Queue/QueueRunner.swift` |
@@ -38,8 +38,8 @@ None of IDM's program code, artwork or name is used in cDownloader. Only the beh
 | Clipboard monitoring | Offers to download a copied link of a known type | Same, once per copy | `Input/ClipboardFilter.swift` |
 | Drag and drop, drop target | Drop links on the window or a floating target | Same; finished files can be dragged out | `MainView.swift`, `ProgressViews.swift` |
 | Download File Info dialog | Category, folder, name and description before starting; "Download Later" to a queue | Same, and it asks the server for the real name and size meanwhile | `AddDownloadViews.swift` |
-| Progress window | Speed, time left, resume capability, a bar showing each connection's piece | Same bar (pink starts, blue done), plus a per-download speed limit | `ProgressViews.swift` |
-| Download complete dialog | Open, open folder, drag the file | Same | `ProgressViews.swift` |
+| Progress window | Speed, time left, resume capability, a bar showing each connection's piece | A details panel under the list instead of a separate window: same bar (pink starts, blue done), speed, time left, resume capability, a per-download speed limit | `ProgressViews.swift` (`DownloadDetailsPanel`) |
+| Download complete dialog | Open, open folder, drag the file | A banner in the main window that fades away, with Open, Show in Finder and a draggable icon; never opens a window | `ProgressViews.swift` (`CompletionBanner`) |
 | Batch download | `file*.jpg` from 1 to N or a to z, with zero padding | Same | `Input/BatchPattern.swift` |
 | Import and export | Import links from a text file; export lists (`.ef2`) | Same; reads and writes IDM's `.ef2` | `Input/LinkImporter.swift` |
 | Zip preview | Lists a remote zip's contents and extracts single files | Same, including archives over 4 GB | `Zip/RemoteZipPreview.swift` |
@@ -47,7 +47,7 @@ None of IDM's program code, artwork or name is used in cDownloader. Only the beh
 | Command line | `idman /d URL /p folder /f name /q /n /a`, `idman /s` | `cdownloader` with the same options (`-` or `/`) | `IPC/CommandLineParser.swift`, `Sources/cDownloaderCLI` |
 | Antivirus check | Runs a scanner on finished files | Same, with `%f` for the file | `ScanRunner` |
 | Sounds | A sound per event | Same, with the Mac's system sounds | `SoundPlayer` |
-| Start with Windows, tray icon | Runs at startup, icon by the clock | Opens at login, menu bar icon | `LaunchAtLogin`, `MenuBarContent` |
+| Start with Windows, tray icon | Runs at startup, icon by the clock | Opens at login, menu bar icon; with the window closed it keeps running in the menu bar without a Dock icon | `LaunchAtLogin`, `MenuBarContent`, `DockIcon` |
 | Customizable list and toolbar | Choose and order columns and buttons | Columns can be hidden, reordered and sorted | `DownloadTable.swift` |
 | Refresh download address | Picks up a fresh link for an expired download | Same: mark the download, open the page again, and the next download with that name updates it | `DownloadLibrary.requestAddressRefresh` |
 

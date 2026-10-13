@@ -36,6 +36,8 @@ import Testing
         // T17-10: the YouTube settings survive a save.
         settings.webVideoQuality = .p720
         settings.webVideoCookiesBrowser = "chrome"
+        // T19-05: turning off the menu-bar-only mode survives a save.
+        settings.hideDockIconWhenClosed = false
         secrets.setPassword("s3cret-site", for: login.credentialKey)
         secrets.setPassword("s3cret-proxy", for: ProxySettings.credentialKey)
 
@@ -49,6 +51,7 @@ import Testing
 
         #expect(libraryStore.load() == library)
         #expect(settingsStore.load() == settings)
+        #expect(settingsStore.load().hideDockIconWhenClosed == false)
         for name in ["library.json", "settings.json"] {
             let raw = try String(contentsOf: dir.file(name), encoding: .utf8)
             #expect(!raw.contains("s3cret"), "\(name) must not contain passwords")
@@ -100,6 +103,9 @@ import Testing
         #expect(loaded.capturedExtensions == AppSettings.defaultCapturedExtensions)
         #expect(loaded.webVideoQuality == .best)
         #expect(loaded.webVideoCookiesBrowser == nil)
+        // T19-04: menu-bar-only mode is on by default, also for settings saved before it existed.
+        #expect(loaded.hideDockIconWhenClosed == true)
+        #expect(AppSettings().hideDockIconWhenClosed == true)
         #expect(store.lastBackupURL == nil)
     }
 

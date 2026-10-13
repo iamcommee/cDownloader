@@ -3,113 +3,128 @@ import cDownloaderCore
 import SwiftUI
 import UniformTypeIdentifiers
 
-/// Per-download window: numbers, the piece-by-piece bar, a per-download speed limit and controls.
-struct ProgressWindow: View {
-    let itemID: UUID
+/// Under the list in the main window: the selected download's progress, its piece-by-piece bar, a speed limit
+/// for it, and its controls.
+struct DownloadDetailsPanel: View {
     @Environment(AppModel.self) private var model
-    @Environment(\.dismiss) private var dismiss
-    @State private var showDetails = true
+
+    var body: some View {
+        let items = model.selectedItems
+        Group {
+            if items.count == 1, let item = items.first {
+                DownloadDetails(item: item).id(item.id)
+            } else {
+                Text(items.isEmpty ? String(localized: "Select a download to see its progress here.") : String(localized: "\(items.count) downloads selected"))
+                    .foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            }
+        }
+        .frame(height: 118)
+        .background(.bar)
+    }
+}
+
+/// One download's numbers, bar, speed limit and buttons.
+struct DownloadDetails: View {
+    let item: DownloadItem
+    @Environment(AppModel.self) private var model
     @State private var limitOn = false
     @State private var limitKB = 200.0
 
     var body: some View {
-        if let item = model.library.item(itemID) {
-            let snapshot = model.library.progress[itemID]
-            VStack(alignment: .leading, spacing: 12) {
-                HStack(alignment: .top, spacing: 12) {
-                    Image(nsImage: NSWorkspace.shared.icon(for: UTType(filenameExtension: (item.fileName as NSString).pathExtension) ?? .data))
-                        .resizable().frame(width: 40, height: 40)
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(item.fileName.isEmpty ? String(localized: "Connecting…") : item.fileName).font(.headline).lineLimit(1).truncationMode(.middle)
-                        Text(item.url.absoluteString).font(.caption).foregroundStyle(.secondary).lineLimit(1).truncationMode(.middle)
-                    }
+        let snapshot = model.library.progress[item.id]
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 10) {
+                Image(nsImage: NSWorkspace.shared.icon(for: UTType(filenameExtension: (item.fileName as NSString).pathExtension) ?? .data))
+                    .resizable().frame(width: 32, height: 32)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(item.fileName.isEmpty ? String(localized: "Connecting…") : item.fileName).font(.headline).lineLimit(1).truncationMode(.middle)
+                    Text(item.url.absoluteString).font(.caption).foregroundStyle(.secondary).lineLimit(1).truncationMode(.middle)
                 }
-                Grid(alignment: .leading, horizontalSpacing: 16, verticalSpacing: 4) {
-                    GridRow { Text("Status").foregroundStyle(.secondary); Text(statusText(item, snapshot)) }
-                    GridRow { Text("File size").foregroundStyle(.secondary); Text(Format.bytes(snapshot?.totalBytes ?? item.totalBytes).isEmpty ? String(localized: "Unknown") : Format.bytes(snapshot?.totalBytes ?? item.totalBytes)) }
-                    GridRow { Text("Downloaded").foregroundStyle(.secondary); Text(Format.bytes(snapshot?.downloadedBytes ?? item.downloadedBytes)).monospacedDigit() }
-                    GridRow { Text("Transfer rate").foregroundStyle(.secondary); Text(Format.speed(snapshot?.bytesPerSecond)).monospacedDigit() }
-                    GridRow { Text("Time left").foregroundStyle(.secondary); Text(Format.duration(snapshot?.secondsLeft)).monospacedDigit() }
-                    GridRow { Text("Resume capability").foregroundStyle(.secondary); Text(item.resumable ? String(localized: "Yes") : String(localized: "No")) }
-                }
-                ProgressView(value: fraction(item, snapshot))
-                DisclosureGroup("Connections and pieces", isExpanded: $showDetails) {
-                    VStack(alignment: .leading, spacing: 6) {
-                        SegmentBar(progress: snapshot?.segments, complete: item.status == .completed)
-                            .frame(height: 22)
-                            .help("Pink marks are where each connection started, blue is downloaded, white is still to do.")
-                        if let bars = snapshot?.segments.bars, !bars.isEmpty, item.kind == .file {
-                            Table(Array(bars.enumerated()).map { SegmentRowData(index: $0.offset, bar: $0.element) }) {
-                                TableColumn("N.") { Text("\($0.index + 1)").monospacedDigit() }.width(30)
-                                TableColumn("Downloaded") { Text(Format.bytes($0.bar.downloadedBytes)).monospacedDigit() }
-                                TableColumn("Left") { Text(Format.bytes($0.bar.remainingBytes)).monospacedDigit() }
-                                TableColumn("Info") { Text($0.bar.isActive ? String(localized: "Receiving data…") : ($0.bar.remainingBytes == 0 ? String(localized: "Done") : String(localized: "Waiting"))) }
-                            }
-                            .frame(height: 120)
-                        }
-                        Text("\(snapshot?.activeConnections ?? 0) active connections").font(.caption).foregroundStyle(.secondary)
-                    }
-                }
-                GroupBox("Speed Limiter") {
-                    HStack {
-                        Toggle("Limit this download to", isOn: $limitOn)
-                        TextField("", value: $limitKB, format: .number).frame(width: 70)
-                        Text("KB/s")
-                        Spacer()
-                    }
-                    .onChange(of: limitOn) { _, _ in applyLimit() }
-                    .onChange(of: limitKB) { _, _ in if limitOn { applyLimit() } }
-                }
-                HStack {
-                    Spacer()
-                    if item.status == .downloading {
-                        Button("Pause") { model.library.pause(itemID) }
-                    } else if item.status == .completed {
-                        Button("Open") { NSWorkspace.shared.open(item.destinationURL) }
-                        Button("Show in Finder") { NSWorkspace.shared.activateFileViewerSelecting([item.destinationURL]) }
-                    } else {
-                        Button("Resume") { model.library.start(itemID) }
-                    }
-                    Button("Close") { dismiss() }.keyboardShortcut(.cancelAction)
-                }
+                Spacer(minLength: 12)
+                Text(summary(snapshot)).monospacedDigit().foregroundStyle(item.status == .failed ? .red : .primary).lineLimit(1)
             }
-            .padding(16)
-            .frame(width: 520)
-            .onAppear {
-                if let limit = item.speedLimit {
-                    limitOn = true
-                    limitKB = Double(limit) / 1024
-                }
+            if item.status == .completed || !(snapshot?.segments.bars.isEmpty ?? true) {
+                SegmentBar(progress: snapshot?.segments, complete: item.status == .completed)
+                    .frame(height: 14)
+                    .help("Pink marks are where each connection started, blue is downloaded, white is still to do.")
+            } else {
+                ProgressView(value: fraction(snapshot))
             }
-        } else {
-            Text("This download was removed.").padding(40)
+            HStack(spacing: 10) {
+                Text(amounts(snapshot)).font(.caption).foregroundStyle(.secondary).monospacedDigit().lineLimit(1)
+                Spacer(minLength: 12)
+                Toggle("Limit to", isOn: $limitOn).toggleStyle(.checkbox)
+                TextField("", value: $limitKB, format: .number).frame(width: 60)
+                Text("KB/s").foregroundStyle(.secondary)
+                Divider().frame(height: 16)
+                actions
+            }
+            .controlSize(.small)
+            .onChange(of: limitOn) { _, _ in applyLimit() }
+            .onChange(of: limitKB) { _, _ in if limitOn { applyLimit() } }
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 10)
+        .onAppear {
+            if let limit = item.speedLimit {
+                limitOn = true
+                limitKB = Double(limit) / 1024
+            }
+        }
+    }
+
+    @ViewBuilder private var actions: some View {
+        switch item.status {
+        case .downloading, .waiting:
+            Button("Pause") { model.library.pause(item.id) }
+        case .completed:
+            Button("Open") { NSWorkspace.shared.open(item.destinationURL) }
+            Button("Show in Finder") { NSWorkspace.shared.activateFileViewerSelecting([item.destinationURL]) }
+        case .stopped, .failed:
+            Button("Resume") { model.library.start(item.id) }
         }
     }
 
     private func applyLimit() {
-        model.library.setSpeedLimit(itemID, bytesPerSecond: limitOn ? Int64(limitKB * 1024) : nil)
+        model.library.setSpeedLimit(item.id, bytesPerSecond: limitOn ? Int64(limitKB * 1024) : nil)
     }
 
-    private func fraction(_ item: DownloadItem, _ snapshot: DownloadProgressSnapshot?) -> Double {
+    private func fraction(_ snapshot: DownloadProgressSnapshot?) -> Double {
         guard let total = snapshot?.totalBytes ?? item.totalBytes, total > 0 else { return item.status == .completed ? 1 : 0 }
         return min(1, Double(snapshot?.downloadedBytes ?? item.downloadedBytes) / Double(total))
     }
 
-    private func statusText(_ item: DownloadItem, _ snapshot: DownloadProgressSnapshot?) -> String {
+    /// "45% · 8 MB/s · 2 min left" while downloading; otherwise the status in words.
+    private func summary(_ snapshot: DownloadProgressSnapshot?) -> String {
         switch item.status {
-        case .downloading: snapshot == nil ? String(localized: "Connecting…") : String(localized: "Receiving data…")
-        case .completed: String(localized: "Complete")
-        case .failed: item.errorMessage ?? String(localized: "Error")
-        case .waiting: String(localized: "Waiting in queue")
-        case .stopped: String(localized: "Paused")
+        case .downloading:
+            guard let snapshot else { return String(localized: "Connecting…") }
+            let known = snapshot.totalBytes.map { $0 > 0 } ?? false
+            let parts = [known ? String(format: "%.1f%%", fraction(snapshot) * 100) : "", Format.speed(snapshot.bytesPerSecond), Format.duration(snapshot.secondsLeft)]
+            return parts.filter { !$0.isEmpty }.joined(separator: " · ")
+        case .completed: return String(localized: "Complete")
+        case .failed: return item.errorMessage ?? String(localized: "Error")
+        case .waiting: return withPercent(String(localized: "Waiting in queue"), snapshot)
+        case .stopped: return withPercent(String(localized: "Paused"), snapshot)
         }
     }
-}
 
-struct SegmentRowData: Identifiable {
-    let index: Int
-    let bar: SegmentProgress.Bar
-    var id: Int { index }
+    /// "Paused · 45.0%" when the size is known, in the list's format.
+    private func withPercent(_ status: String, _ snapshot: DownloadProgressSnapshot?) -> String {
+        guard let total = snapshot?.totalBytes ?? item.totalBytes, total > 0 else { return status }
+        return "\(status) · " + String(format: "%.1f%%", fraction(snapshot) * 100)
+    }
+
+    /// "450 MB of 1 GB · 8 connections · Can resume"
+    private func amounts(_ snapshot: DownloadProgressSnapshot?) -> String {
+        let done = Format.bytes(snapshot?.downloadedBytes ?? item.downloadedBytes)
+        let total = Format.bytes(snapshot?.totalBytes ?? item.totalBytes)
+        var parts = [total.isEmpty ? done : String(localized: "\(done) of \(total)")]
+        if item.status == .downloading { parts.append(String(localized: "\(snapshot?.activeConnections ?? 0) connections")) }
+        parts.append(item.resumable ? String(localized: "Can resume") : String(localized: "Cannot resume"))
+        return parts.filter { !$0.isEmpty }.joined(separator: " · ")
+    }
 }
 
 /// IDM's progress bar: one band for the file, blue for downloaded parts and pink marks at segment starts.
@@ -139,43 +154,37 @@ struct SegmentBar: View {
     }
 }
 
-/// Shown when a download finishes: open it, show it, or drag the file somewhere.
-struct CompleteWindow: View {
-    let itemID: UUID
+/// The note at the top of the main window when a download finishes: open it, show it, or drag the file somewhere.
+/// It fades away by itself.
+struct CompletionBanner: View {
+    let item: DownloadItem
     @Environment(AppModel.self) private var model
-    @Environment(\.dismiss) private var dismiss
 
     var body: some View {
-        if let item = model.library.item(itemID) {
-            VStack(alignment: .leading, spacing: 14) {
-                HStack(spacing: 14) {
-                    Image(nsImage: NSWorkspace.shared.icon(forFile: item.destinationURL.path))
-                        .resizable().frame(width: 56, height: 56)
-                        .onDrag { NSItemProvider(contentsOf: item.destinationURL) ?? NSItemProvider() }
-                        .help("Drag the file to Finder or another app")
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("Download complete").font(.headline)
-                        Text(item.fileName).lineLimit(1).truncationMode(.middle)
-                        Text("\(Format.bytes(item.totalBytes)) · \(item.directory)").font(.caption).foregroundStyle(.secondary).lineLimit(1).truncationMode(.middle)
-                    }
-                }
-                Toggle("Don't show this window again", isOn: Binding(
-                    get: { !model.library.settings.showCompleteDialog },
-                    set: { model.library.settings.showCompleteDialog = !$0 }
-                ))
-                .font(.caption)
-                HStack {
-                    Spacer()
-                    Button("Show in Finder") { NSWorkspace.shared.activateFileViewerSelecting([item.destinationURL]); dismiss() }
-                    Button("Close") { dismiss() }.keyboardShortcut(.cancelAction)
-                    Button("Open") { NSWorkspace.shared.open(item.destinationURL); dismiss() }.keyboardShortcut(.defaultAction)
-                }
+        HStack(spacing: 10) {
+            Image(nsImage: NSWorkspace.shared.icon(forFile: item.destinationURL.path))
+                .resizable().frame(width: 28, height: 28)
+                .onDrag { NSItemProvider(contentsOf: item.destinationURL) ?? NSItemProvider() }
+                .help("Drag the file to Finder or another app")
+            VStack(alignment: .leading, spacing: 1) {
+                Text("Download complete").font(.caption).foregroundStyle(.secondary)
+                Text(item.fileName).lineLimit(1).truncationMode(.middle)
             }
-            .padding(18)
-            .frame(width: 460)
-        } else {
-            Text("This download was removed.").padding(40)
+            Spacer(minLength: 12)
+            Button("Show in Finder") { NSWorkspace.shared.activateFileViewerSelecting([item.destinationURL]); model.completionBanner = nil }
+            Button("Open") { NSWorkspace.shared.open(item.destinationURL); model.completionBanner = nil }
+                .buttonStyle(.borderedProminent)
+            Button { model.completionBanner = nil } label: { Image(systemName: "xmark") }
+                .buttonStyle(.borderless)
+                .help("Close")
         }
+        .controlSize(.small)
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
+        .frame(maxWidth: 560)
+        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 10))
+        .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(.separator))
+        .shadow(color: .black.opacity(0.15), radius: 8, y: 3)
     }
 }
 

@@ -15,8 +15,6 @@ enum SidebarItem: Hashable {
 /// Windows the model asks the root view to open (SwiftUI only lets views open windows).
 enum WindowRequest: Equatable {
     case main
-    case progress(UUID)
-    case complete(UUID)
     case scheduler
     case grabber(UUID?)
     case dropTarget
@@ -47,6 +45,10 @@ final class AppModel {
 
     // Window requests consumed by the root view
     var windowRequests: [WindowRequest] = []
+
+    /// The finished download shown in the banner at the top of the main window, until it fades away.
+    var completionBanner: UUID?
+    @ObservationIgnored private var bannerTimer: Task<Void, Never>?
 
     // Site grabber projects
     private(set) var grabberProjects: [GrabberProject] = []
@@ -82,6 +84,7 @@ final class AppModel {
             MainActor.assumeIsolated { self?.tick() }
         }
         startToolUpdates(tools)
+        DockIcon.start(model: self)
     }
 
     /// Lets yt-dlp update itself in the background, since YouTube changes often: a look at launch and every few
@@ -173,7 +176,19 @@ final class AppModel {
         SoundPlayer.play(.downloadComplete, settings: settings.sounds)
         Notifier.post(title: String(localized: "Download complete"), body: item.fileName)
         ScanRunner.scan(item.destinationURL, settings: settings.scan)
-        if settings.showCompleteDialog { request(.complete(item.id)) }
+        if settings.showCompleteDialog { showCompletionBanner(for: item.id) }
+    }
+
+    /// Shows the "download complete" banner in the main window. It fades away by itself after a few seconds, and
+    /// never opens a window: with the window closed, the macOS notification is enough.
+    func showCompletionBanner(for id: UUID) {
+        completionBanner = id
+        bannerTimer?.cancel()
+        bannerTimer = Task { [weak self] in
+            try? await Task.sleep(for: .seconds(8))
+            guard !Task.isCancelled else { return }
+            self?.completionBanner = nil
+        }
     }
 
     // MARK: - Adding downloads
@@ -214,7 +229,8 @@ final class AppModel {
         }
         item.status = .stopped
         library.add(item, start: startNow, queueID: startNow ? nil : (queueID ?? DownloadQueue.mainDownloadID))
-        if startNow, library.settings.progressWindow != .hidden { request(.progress(item.id)) }
+        // Its progress then shows in the details panel under the list.
+        if startNow, library.settings.progressWindow != .hidden { selection = [item.id] }
     }
 
     func addMany(_ items: [DownloadItem], startNow: Bool, queueID: UUID?) {

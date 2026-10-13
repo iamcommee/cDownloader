@@ -135,6 +135,8 @@ public struct AppSettings: Codable, Sendable, Equatable {
     public var clipboardMonitoring = true
     public var showDropTarget = false
     public var showMenuBarIcon = true
+    /// With no window open, the app lives in the menu bar only, like a tray app (only while the menu bar icon is shown).
+    public var hideDockIconWhenClosed = true
     // File types
     public var capturedExtensions = defaultCapturedExtensions
     public var dontCaptureSites = ["*.update.microsoft.com", "*.windowsupdate.com", "*.mzstatic.com"]
@@ -178,6 +180,7 @@ public struct AppSettings: Codable, Sendable, Equatable {
         clipboardMonitoring = try c.value(.clipboardMonitoring, default: d.clipboardMonitoring)
         showDropTarget = try c.value(.showDropTarget, default: d.showDropTarget)
         showMenuBarIcon = try c.value(.showMenuBarIcon, default: d.showMenuBarIcon)
+        hideDockIconWhenClosed = try c.value(.hideDockIconWhenClosed, default: d.hideDockIconWhenClosed)
         capturedExtensions = try c.value(.capturedExtensions, default: d.capturedExtensions)
         dontCaptureSites = try c.value(.dontCaptureSites, default: d.dontCaptureSites)
         addressExceptions = try c.value(.addressExceptions, default: d.addressExceptions)

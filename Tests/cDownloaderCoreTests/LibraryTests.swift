@@ -20,6 +20,20 @@ final class LibraryHooks {
     }
 }
 
+/// Stands in for moving a deleted download's file to the Trash: records the file and deletes it, so tests never
+/// fill the real Trash.
+final class DiscardRecorder: @unchecked Sendable {
+    private let lock = NSLock()
+    private var recorded: [URL] = []
+
+    var urls: [URL] { lock.withLock { recorded } }
+
+    func discard(_ url: URL) {
+        lock.withLock { recorded.append(url) }
+        try? FileManager.default.removeItem(at: url)
+    }
+}
+
 /// Keeps test servers alive for the whole test.
 final class ServerBag: @unchecked Sendable {
     var servers: [LocalHTTPServer] = []
@@ -531,6 +545,9 @@ final class ServerBag: @unchecked Sendable {
 
     @Test func t15_07_removeAndCleanup() async throws {
         let (library, _) = makeLibrary()
+        // T19-01: deleting with the file hands finished files to discardFile (the Trash in the app).
+        let discarded = DiscardRecorder()
+        library.discardFile = discarded.discard
         let tempDirectory = library.engine.currentConfiguration.temporaryDirectory
         try FileManager.default.createDirectory(at: tempDirectory, withIntermediateDirectories: true)
 
@@ -562,8 +579,26 @@ final class ServerBag: @unchecked Sendable {
         #expect(!FileManager.default.fileExists(atPath: workFolder.path))
         library.remove([keep.id], deleteFiles: false)
         #expect(FileManager.default.fileExists(atPath: keep.destinationURL.path))
+        #expect(discarded.urls.isEmpty, "removing from the list only never throws a file away")
         library.remove([gone.id, missingFile.id], deleteFiles: true)
         #expect(!FileManager.default.fileExists(atPath: gone.destinationURL.path))
+        #expect(discarded.urls == [gone.destinationURL], "a finished file that is already gone is not passed on")
+
+        // T19-01: unfinished downloads only lose their partial data; a file with their name is not theirs to delete.
+        var unfinished: [DownloadItem] = []
+        for (name, status) in [("s", DownloadStatus.stopped), ("f", .failed), ("d", .downloading), ("w", .waiting)] {
+            var item = library.makeItem(from: IncomingDownload(url: URL(string: "https://h/u\(name).zip")!), folder: downloads.url.path)
+            item.status = status
+            try Data("u".utf8).write(to: item.destinationURL)
+            library.add(item, start: false, queueID: DownloadQueue.mainDownloadID)
+            unfinished.append(item)
+        }
+        let unfinishedPart = tempDirectory.appendingPathComponent("\(unfinished[0].id.uuidString).part")
+        try Data(count: 3).write(to: unfinishedPart)
+        library.remove(Set(unfinished.map(\.id)), deleteFiles: true)
+        #expect(discarded.urls == [gone.destinationURL], "only finished files are thrown away")
+        #expect(unfinished.allSatisfy { FileManager.default.fileExists(atPath: $0.destinationURL.path) })
+        #expect(!FileManager.default.fileExists(atPath: unfinishedPart.path))
         #expect(library.items.isEmpty)
         #expect(library.queues.allSatisfy { $0.itemIDs.isEmpty })
 
@@ -577,11 +612,14 @@ final class ServerBag: @unchecked Sendable {
 
     @Test func t15_07_removingARunningDownloadStopsIt() async throws {
         let (library, _) = makeLibrary()
+        let discarded = DiscardRecorder()
+        library.discardFile = discarded.discard
         let (server, urls) = try serve(1, size: 2_000_000, rate: 200_000)
         let item = library.makeItem(from: IncomingDownload(url: urls[0]), folder: downloads.url.path)
         library.add(item, start: true)
         try await waitFor { (library.progress[item.id]?.downloadedBytes ?? 0) > 20_000 }
         library.remove([item.id], deleteFiles: true)
+        #expect(discarded.urls.isEmpty, "T19-03: a download still running has no finished file to throw away")
         #expect(library.item(item.id) == nil)
         try await Task.sleep(for: .milliseconds(300))
         #expect(library.item(item.id) == nil)
