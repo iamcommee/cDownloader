@@ -26,10 +26,7 @@ You need a Mac with macOS 14 or newer and Xcode 16 or newer (it was built with X
 scripts/build-app.sh
 ```
 
-This creates two things in `dist`:
-
-- `cDownloader.app`, the app itself. Move it to your Applications folder and open it.
-- `cDownloader.dmg`, the installer to give to other people (see "Install it" below).
+This creates one file: `dist/cDownloader.dmg`, the installer. Open it and drag cDownloader into Applications, or give it to other people (see "Install it" below).
 
 The first build also downloads the video tools the app includes (about 150 MB, see "Video tools are included"). Each download is checked against a known checksum (a fingerprint of the file), so a changed file is refused. They are kept in `.build/tools-cache`, so later builds work offline.
 
