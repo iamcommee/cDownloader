@@ -1,0 +1,22 @@
+cDownloader includes the free programs below, unchanged, inside the app (in cDownloader.app/Contents/Helpers).
+Each one keeps its own license. The full license texts are in this folder.
+
+
+yt-dlp 2026.08.19 (cDownloader lets it update itself to newer versions)
+  What it does: downloads YouTube videos.
+  License: The Unlicense (public domain), see yt-dlp-LICENSE.
+  This single-file version of yt-dlp also contains Python and other parts under their own licenses,
+  some of them the GNU General Public License version 3 or later. See yt-dlp-THIRD_PARTY_LICENSES.txt and GPL-3.0.txt.
+  Source code: https://github.com/yt-dlp/yt-dlp
+
+deno 2.9.7
+  What it does: runs the small scripts YouTube uses to hide its video addresses, on behalf of yt-dlp.
+  License: MIT, see deno-LICENSE.md.
+  Source code: https://github.com/denoland/deno
+
+ffmpeg and ffprobe 9.0.2, built by Martin Riedl
+  What they do: join picture and sound into one file, and turn video streams into .mp4 files.
+  License: GNU General Public License version 3, see GPL-3.0.txt.
+  Source code: FFmpeg 9.0.2 from https://ffmpeg.org/download.html, and the build script with every library
+  it includes from https://git.martin-riedl.de/ffmpeg/build-script
+  Ready-made builds: https://ffmpeg.martin-riedl.de

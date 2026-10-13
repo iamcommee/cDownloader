@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>cDownloader</title>
+  <!-- Fonts: no web font is loaded on purpose. Chrome on a Mac renders San Francisco from the token
+       stack, and a popup should not contact Google Fonts every time it opens. -->
+  <link rel="stylesheet" href="styles/liquidglass-tokens.css">
+  <link rel="stylesheet" href="styles/liquidglass-components.css">
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body class="scene">
+  <header class="glass bar">
+    <img class="appicon" src="icons/icon32.png" alt="">
+    <span class="title">cDownloader</span>
+    <span class="badge" id="status" role="status"><span class="dot"></span><span id="status-text">Checking…</span></span>
+  </header>
+
+  <div class="list notice" id="notice" hidden>
+    <div class="list-row">
+      <span class="licon red"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></svg></span>
+      <span class="ltext">The browser can’t reach the app<span class="wrap">Open cDownloader once on this Mac, then open this menu again.</span></span>
+    </div>
+  </div>
+
+  <section class="group" aria-label="Settings">
+    <div class="list">
+      <div class="list-row">
+        <span class="licon" id="enabled-icon"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v12M7 11l5 5 5-5M5 20h14"/></svg></span>
+        <label class="ltext" for="enabled">Take over downloads<span id="enabled-detail">Downloads open in cDownloader</span></label>
+        <label class="toggle" id="enabled-toggle">
+          <input type="checkbox" role="switch" id="enabled" aria-label="Take over downloads" aria-describedby="enabled-detail">
+          <span class="track"><span class="knob"></span></span>
+        </label>
+      </div>
+    </div>
+    <p class="group-footer" id="skip-hint">Hold <kbd id="skip-key">Option ⌥</kbd> while clicking a link to let the browser download it instead.</p>
+  </section>
+
+  <section class="group" aria-labelledby="media-title">
+    <h2 class="group-header"><span id="media-title">Media on This Page</span><span class="badge" id="media-count" hidden></span></h2>
+    <div class="list media" id="media">
+      <div class="empty compact">
+        <span class="eicon"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m10 9 5 3-5 3z"/></svg></span>
+        <div class="etext">
+          <h3>No media found yet</h3>
+          <p>Play the video on this page, then open this menu again.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="actions">
+    <button type="button" class="btn glass tinted is-interactive" id="open">
+      <svg class="icon sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/></svg>
+      Open cDownloader
+    </button>
+  </div>
+  <script src="popup.js" type="module"></script>
+</body>
+</html>

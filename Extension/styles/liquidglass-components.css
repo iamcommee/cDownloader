@@ -1,0 +1,139 @@
+/* liquidglass material and components for the cDownloader add-on.
+   Copied from mydesign/systems/liquidglass/components (button-primary, button-secondary, button-icon,
+   badge, toggle, group-panel, list-row, empty-state, select). Tokens live in liquidglass-tokens.css. */
+/* material: Liquid Glass for the web (derived from Apple's description: blurs content behind it,
+   reflects light at its edge, adapts to light and dark content, reacts to touch and pointer).
+   Apply .glass to controls and navigation that float above content. Never to content itself. */
+.glass { position: relative; isolation: isolate; background: var(--color-glass-fill); -webkit-backdrop-filter: blur(var(--blur-glass)) saturate(var(--saturate-glass)); backdrop-filter: blur(var(--blur-glass)) saturate(var(--saturate-glass)); box-shadow: var(--shadow-glass); border-radius: var(--radius-full); color: var(--color-ink); }
+/* rim: a one-pixel edge that is brightest where the light comes from (top left), masked to the border ring; black in the mask carries only alpha */
+.glass::before { content: ""; position: absolute; inset: 0; z-index: -1; border-radius: inherit; padding: 1px; background: linear-gradient(135deg, var(--color-glass-highlight) 0%, var(--color-glass-rim) 40%, var(--color-glass-rim) 60%, var(--color-glass-highlight-low) 100%); -webkit-mask: linear-gradient(black 0 0) content-box, linear-gradient(black 0 0); -webkit-mask-composite: xor; mask: linear-gradient(black 0 0) content-box, linear-gradient(black 0 0); mask-composite: exclude; pointer-events: none; }
+/* sheen: the soft light caught along the top of the glass */
+.glass::after { content: ""; position: absolute; inset: 0; z-index: -1; border-radius: inherit; background: radial-gradient(120% 70% at 50% -10%, var(--color-glass-sheen), transparent 60%); pointer-events: none; }
+/* variants: regular is the default. clear is for components over rich media. thick is for large surfaces (sidebars, sheets). tinted is the one prominent action. */
+.glass.clear { background: var(--color-glass-fill-clear); -webkit-backdrop-filter: blur(var(--blur-glass-clear)) saturate(var(--saturate-glass)); backdrop-filter: blur(var(--blur-glass-clear)) saturate(var(--saturate-glass)); }
+.glass.thick { background: var(--color-glass-fill-thick); }
+.glass.tinted { background: var(--color-glass-tint); color: var(--color-on-accent); }
+.glass.tinted::after { background: radial-gradient(120% 70% at 50% -10%, var(--color-glass-sheen-strong), transparent 60%); }
+/* interaction: brightens under the pointer, settles under the finger */
+.glass.is-interactive { cursor: pointer; transition: transform var(--motion-fast) var(--ease-liquid), background var(--motion-fast) ease, box-shadow var(--motion-fast) ease; }
+.glass.is-interactive:hover, .glass.is-hover { background: var(--color-glass-hover); }
+.glass.tinted.is-interactive:hover, .glass.tinted.is-hover { background: var(--color-glass-tint-hover); }
+.glass.is-interactive:active, .glass.is-pressed { transform: scale(0.97); }
+/* dimming layer: put behind clear glass when the content under it is bright */
+.dim::after { content: ""; position: absolute; inset: 0; background: var(--color-dim); border-radius: inherit; pointer-events: none; }
+/* group: several controls sharing one piece of glass, the web form of a GlassEffectContainer.
+   Children drop their own glass; the group carries it. A .spacer breaks the shared background. */
+.glass-group { display: inline-flex; align-items: center; gap: var(--space-1); padding: var(--space-1); }
+.glass-group > .glass { background: transparent; box-shadow: none; -webkit-backdrop-filter: none; backdrop-filter: none; }
+.glass-group > .glass::before, .glass-group > .glass::after { display: none; }
+.glass-group > .glass.is-interactive:hover, .glass-group > .glass.is-hover { background: var(--color-fill); }
+.glass-group > .glass.is-selected { background: var(--color-glass-knob); box-shadow: var(--shadow-knob); }
+/* scroll edge effect: blurs and fades content that scrolls beneath a floating bar, so the bar stays legible */
+.edge-top::before { content: ""; position: absolute; left: 0; right: 0; top: 0; height: var(--edge-height, 96px); z-index: 1; -webkit-backdrop-filter: blur(var(--blur-edge)); backdrop-filter: blur(var(--blur-edge)); -webkit-mask-image: linear-gradient(to bottom, black 25%, transparent); mask-image: linear-gradient(to bottom, black 25%, transparent); pointer-events: none; }
+.edge-bottom::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: var(--edge-height, 96px); z-index: 1; -webkit-backdrop-filter: blur(var(--blur-edge)); backdrop-filter: blur(var(--blur-edge)); -webkit-mask-image: linear-gradient(to top, black 25%, transparent); mask-image: linear-gradient(to top, black 25%, transparent); pointer-events: none; }
+/* icon: line icons, 2px stroke, round caps; filled only in the tab bar */
+.icon { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.icon.sm { width: 16px; height: 16px; }
+.icon.lg { width: 24px; height: 24px; }
+.glass-group > .glass[aria-pressed="true"] { background: var(--color-glass-knob); box-shadow: var(--shadow-knob); }
+/* page-level scroll edge effect for a bar fixed to the top of the viewport */
+.edge-fixed { position: fixed; top: 0; left: 0; right: 0; height: var(--edge-height, 120px); z-index: 5; -webkit-backdrop-filter: blur(var(--blur-edge)); backdrop-filter: blur(var(--blur-edge)); -webkit-mask-image: linear-gradient(to bottom, black 30%, transparent); mask-image: linear-gradient(to bottom, black 30%, transparent); pointer-events: none; }
+
+/* button base, shared by the three button components */
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: var(--space-2); min-height: 44px; padding: 0 var(--space-5); border: 0; font-size: var(--text-body); font-weight: 500; letter-spacing: var(--tracking-body); white-space: nowrap; text-decoration: none; }
+.btn.mini { min-height: 32px; padding: 0 var(--space-3); font-size: var(--text-subhead); letter-spacing: var(--tracking-subhead); }
+.btn.large { min-height: 52px; padding: 0 var(--space-6); font-size: var(--text-title3); letter-spacing: var(--tracking-title3); }
+.btn:disabled, .btn.is-disabled { opacity: 0.4; pointer-events: none; }
+
+/* primary button: tinted glass, the one prominent action in a view. Inside a sheet or card (glass
+   never sits on glass, and content surfaces are not glass) use the solid form instead. */
+.btn.tinted { font-weight: 600; }
+.btn.solid { background: var(--color-accent); color: var(--color-on-accent); border-radius: var(--radius-full); font-weight: 600; cursor: pointer; transition: background var(--motion-fast), transform var(--motion-fast) var(--ease-liquid); }
+.btn.solid:hover, .btn.solid.is-hover { background: var(--color-accent-hover); }
+.btn.solid:active, .btn.solid.is-pressed { transform: scale(0.97); }
+/* secondary button: regular glass with a monochrome label; the plain form is for content surfaces */
+.btn.label-accent { color: var(--color-accent); }
+.btn.destructive { color: var(--color-error); }
+.btn.plain { background: var(--color-fill-2); color: var(--color-ink); border-radius: var(--radius-full); cursor: pointer; transition: background var(--motion-fast), transform var(--motion-fast) var(--ease-liquid); }
+.btn.plain:hover, .btn.plain.is-hover { background: var(--color-fill); }
+.btn.plain:active { transform: scale(0.97); }
+/* icon button: a circle of glass around a symbol; the glass is the container, so no borders */
+.btn-icon { width: 44px; height: 44px; padding: 0; display: inline-flex; align-items: center; justify-content: center; border: 0; color: var(--color-ink); }
+.btn-icon.mini { width: 32px; height: 32px; }
+.btn-icon.mini .icon { width: 16px; height: 16px; }
+.btn-icon.large { width: 56px; height: 56px; }
+.btn-icon.large .icon { width: 24px; height: 24px; }
+.btn-icon:disabled { opacity: 0.4; pointer-events: none; }
+/* badge: a count (red oval, white text) for tabs and rows, a neutral tag, or a status dot */
+.badge { display: inline-flex; align-items: center; gap: var(--space-2); min-height: 24px; padding: 0 var(--space-3); border-radius: var(--radius-full); font-size: var(--text-caption); font-weight: 500; letter-spacing: var(--tracking-caption); background: var(--color-fill-2); color: var(--color-ink); white-space: nowrap; }
+.badge.count { min-width: 20px; min-height: 20px; height: 20px; padding: 0 6px; justify-content: center; background: var(--color-error); color: var(--color-on-accent); font-weight: 600; }
+.badge.accent { background: var(--color-accent); color: var(--color-on-accent); }
+.badge .dot { width: 8px; height: 8px; border-radius: var(--radius-full); background: var(--color-ink-tertiary); }
+.badge .dot.success { background: var(--color-success); }
+.badge .dot.warning { background: var(--color-warning); }
+.badge .dot.error { background: var(--color-error); }
+.badge.on-media { color: var(--color-on-media); }
+.media-strip .badge { position: relative; z-index: 1; }
+.media-strip { position: relative; width: 240px; height: 120px; border-radius: var(--radius-md); background-image: linear-gradient(135deg, var(--color-scene-1), var(--color-scene-3)); padding: var(--space-3); display: flex; align-items: flex-start; gap: var(--space-2); }
+/* toggle: the iOS switch; the knob stretches and turns to glass while a finger is on it */
+.toggle { display: inline-flex; align-items: center; gap: var(--space-3); min-height: 44px; cursor: pointer; position: relative; }
+.toggle input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.toggle .track { position: relative; width: 51px; height: 31px; border-radius: var(--radius-full); background: var(--color-fill); transition: background var(--motion-fast); flex-shrink: 0; }
+.toggle .knob { position: absolute; top: 2px; left: 2px; width: 27px; height: 27px; border-radius: var(--radius-full); background: var(--color-on-accent); box-shadow: var(--shadow-knob); transition: left var(--motion-fast) var(--ease-liquid), width var(--motion-fast) var(--ease-liquid), background var(--motion-fast); }
+.toggle.is-on .track { background: var(--color-success); }
+.toggle.is-on .knob { left: 22px; }
+.toggle.is-pressed .knob { width: 34px; background: var(--color-glass-fill-thick); -webkit-backdrop-filter: blur(var(--blur-glass)); backdrop-filter: blur(var(--blur-glass)); }
+.toggle.is-on.is-pressed .knob { left: 15px; }
+.toggle .tlabel { font-size: var(--text-body); letter-spacing: var(--tracking-body); }
+.toggle.is-disabled { opacity: 0.4; pointer-events: none; }
+/* group panel: an inset grouped section of content. Title-case header, 24px radius, 52px rows. */
+.group { width: 420px; max-width: 100%; display: flex; flex-direction: column; gap: var(--space-2); }
+.group-header { padding: 0 var(--space-4); font-size: var(--text-footnote); letter-spacing: var(--tracking-footnote); color: var(--color-ink-secondary); }
+.group-body { border-radius: var(--radius-lg); background: var(--color-surface); overflow: hidden; }
+.group-row { position: relative; display: flex; align-items: center; gap: var(--space-3); min-height: 52px; padding: var(--space-2) var(--space-4); font-size: var(--text-body); letter-spacing: var(--tracking-body); color: var(--color-ink); }
+.group-row + .group-row::before { content: ""; position: absolute; left: var(--space-4); right: 0; top: 0; height: 1px; background: var(--color-separator); }
+a.group-row { text-decoration: none; color: inherit; transition: background var(--motion-fast); }
+a.group-row:hover { background: var(--color-fill-3); }
+.group-row .grow { flex: 1; min-width: 0; }
+.group-row .value { color: var(--color-ink-secondary); }
+.group-row .chev { color: var(--color-ink-tertiary); }
+.group-footer { padding: 0 var(--space-4); font-size: var(--text-footnote); letter-spacing: var(--tracking-footnote); color: var(--color-ink-secondary); line-height: 1.4; }
+/* list row: 52px rows on a grouped surface, a colored symbol tile leading, value and chevron trailing */
+.list { width: 420px; max-width: 100%; border-radius: var(--radius-lg); background: var(--color-surface); overflow: hidden; }
+.list-row { position: relative; display: flex; align-items: center; gap: var(--space-3); min-height: 52px; padding: var(--space-2) var(--space-4); color: var(--color-ink); text-decoration: none; font-size: var(--text-body); letter-spacing: var(--tracking-body); transition: background var(--motion-fast); }
+.list-row + .list-row::before { content: ""; position: absolute; left: 58px; right: 0; top: 0; height: 1px; background: var(--color-separator); }
+.list-row.no-icon + .list-row.no-icon::before { left: var(--space-4); }
+a.list-row:hover, .list-row.is-hover { background: var(--color-fill-3); }
+.list-row.is-selected { background: var(--color-fill-2); }
+.list-row .licon { width: 30px; height: 30px; border-radius: var(--radius-xs); display: inline-flex; align-items: center; justify-content: center; color: var(--color-on-accent); background: var(--color-accent); flex-shrink: 0; }
+.list-row .licon.green { background: var(--color-success); }
+.list-row .licon.orange { background: var(--color-warning); }
+.list-row .licon.red { background: var(--color-error); }
+.list-row .licon.gray { background: var(--color-ink-secondary); }
+.list-row .licon .icon { width: 18px; height: 18px; }
+.list-row .ltext { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.list-row .ltext span { font-size: var(--text-footnote); letter-spacing: var(--tracking-footnote); color: var(--color-ink-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.list-row .lvalue { color: var(--color-ink-secondary); }
+.list-row .chev { color: var(--color-ink-tertiary); }
+.list-row .toggle { min-height: 0; }
+/* empty state: content layer; a symbol in a fill circle, a title, one sentence, one solid action */
+.empty { display: flex; flex-direction: column; align-items: center; text-align: center; gap: var(--space-3); padding: var(--space-10) var(--space-6); width: 420px; max-width: 100%; border-radius: var(--radius-lg); background: var(--color-surface); }
+.empty .eicon { width: 56px; height: 56px; border-radius: var(--radius-full); background: var(--color-fill-2); display: inline-flex; align-items: center; justify-content: center; color: var(--color-ink-secondary); }
+.empty .eicon .icon { width: 26px; height: 26px; }
+.empty h3 { font-size: var(--text-title3); font-weight: 600; letter-spacing: var(--tracking-title3); }
+.empty p { font-size: var(--text-subhead); letter-spacing: var(--tracking-subhead); color: var(--color-ink-secondary); line-height: 1.4; max-width: 34ch; }
+.empty .btn { margin-top: var(--space-2); }
+.empty.compact { padding: var(--space-6); flex-direction: row; text-align: left; gap: var(--space-4); }
+.empty.compact .eicon { width: 44px; height: 44px; }
+.empty.compact .etext { flex: 1; }
+/* select: a glass button that opens a glass menu; menu rows are concentric with the menu corner */
+.select { min-width: 200px; min-height: 44px; padding: 0 var(--space-3) 0 var(--space-4); border: 0; display: inline-flex; align-items: center; justify-content: space-between; gap: var(--space-2); font-size: var(--text-body); letter-spacing: var(--tracking-body); color: var(--color-ink); }
+.select .chev { color: var(--color-ink-secondary); }
+.select:disabled { opacity: 0.4; pointer-events: none; }
+.menu { width: 260px; padding: var(--space-2); border-radius: var(--radius-lg); box-shadow: var(--shadow-float); display: flex; flex-direction: column; }
+.menu-item { display: flex; align-items: center; gap: var(--space-3); min-height: 44px; padding: 0 var(--space-3); border: 0; border-radius: calc(var(--radius-lg) - var(--space-2)); background: transparent; color: var(--color-ink); font-size: var(--text-body); letter-spacing: var(--tracking-body); text-align: left; cursor: pointer; transition: background var(--motion-fast); }
+.menu-item:hover, .menu-item.is-hover { background: var(--color-fill); }
+.menu-item .icon { color: var(--color-ink-secondary); }
+.menu-item .mark { margin-left: auto; color: var(--color-accent); }
+.menu-item.destructive, .menu-item.destructive .icon { color: var(--color-error); }
+.menu-sep { height: 1px; background: var(--color-separator); margin: var(--space-2) var(--space-1); }

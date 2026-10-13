@@ -1,0 +1,178 @@
+/* liquidglass canonical token block. Single source of truth.
+   Copy this whole block (the bare :root, the two data-theme blocks and the three accessibility
+   media rules) byte-identical into every file - never retype it, never fork it.
+   Two color themes share the non-color tokens: light (the default) and dark. With no data-theme
+   attribute a page is light; add data-theme="dark" to <html> to switch. Liquid Glass adapts to the
+   content beneath it, so pick the theme that matches the content layer. The type scale, tracking
+   and system colors are read from Apple's Human Interface Guidelines; the glass recipe (fills,
+   rims, blur, shadows, scene colors) is derived for the web, since Apple publishes no CSS.
+   Provenance per value is in design-registry.md and extraction-notes.md. */
+
+:root {
+  /* liquidglass tokens. Non-color tokens are shared by both themes; colors come in two themes.
+     Default (bare :root) is the light theme. Add data-theme="dark" to the <html> element to
+     switch. Copy this whole block byte-identical into every file; never fork it. */
+  /* typography: the system face, with Inter standing in where San Francisco is not installed */
+  --font-text: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Inter', 'Segoe UI', Roboto, sans-serif;
+  --font-display: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Inter', 'Segoe UI', Roboto, sans-serif;
+  --font-mono: 'SF Mono', ui-monospace, Menlo, Consolas, monospace;
+  /* type scale: Apple's default Dynamic Type sizes (Large), in px */
+  --text-caption2: 11px; --text-caption: 12px;  --text-footnote: 13px;  --text-subhead: 15px;
+  --text-callout: 16px;  --text-body: 17px;     --text-headline: 17px;  --text-title3: 20px;
+  --text-title2: 22px;   --text-title1: 28px;   --text-large-title: 34px; --text-xl-title: 48px;
+  /* tracking: SF Pro letter spacing at each size, in px */
+  --tracking-caption2: 0.06px;  --tracking-caption: 0px;      --tracking-footnote: -0.08px;
+  --tracking-subhead: -0.23px;  --tracking-callout: -0.31px;  --tracking-body: -0.43px;
+  --tracking-title3: -0.45px;   --tracking-title2: -0.26px;   --tracking-title1: 0.38px;
+  --tracking-large-title: 0.4px; --tracking-xl-title: 0.4px;
+  /* spacing: 4px base */
+  --space-1: 4px;  --space-2: 8px;  --space-3: 12px; --space-4: 16px; --space-5: 20px;
+  --space-6: 24px; --space-8: 32px; --space-10: 40px; --space-12: 48px;
+  /* radius: controls are capsules; surfaces step up. Inner radius = outer radius - padding. */
+  --radius-xs: 7px; --radius-sm: 10px; --radius-md: 16px; --radius-lg: 24px; --radius-xl: 36px;
+  --radius-full: 9999px;
+  /* the material */
+  --blur-glass: 20px; --blur-glass-clear: 8px; --blur-edge: 16px; --saturate-glass: 180%;
+  /* shadows compose the theme's shadow colors */
+  --shadow-glass: 0 8px 32px var(--color-glass-shadow), 0 1px 2px var(--color-glass-shadow-near);
+  --shadow-float: 0 24px 64px var(--color-glass-shadow), 0 2px 6px var(--color-glass-shadow-near);
+  --shadow-knob: 0 3px 8px var(--color-glass-shadow), 0 1px 1px var(--color-glass-shadow-near);
+  /* motion: fluid, never bouncy */
+  --motion-fast: 180ms; --motion-slow: 420ms; --ease-liquid: cubic-bezier(0.2, 0.8, 0.2, 1);
+  /* default palette = light */
+  --color-bg: #F2F2F7;
+  --color-surface: #FFFFFF;
+  --color-surface-2: #F2F2F7;
+  --color-ink: #000000;
+  --color-ink-secondary: rgba(60, 60, 67, 0.6);
+  --color-ink-tertiary: rgba(60, 60, 67, 0.3);
+  --color-separator: rgba(60, 60, 67, 0.29);
+  --color-fill: rgba(120, 120, 128, 0.2);
+  --color-fill-2: rgba(120, 120, 128, 0.16);
+  --color-fill-3: rgba(120, 120, 128, 0.12);
+  --color-accent: #007AFF;
+  --color-accent-hover: #0066D6;
+  --color-on-accent: #FFFFFF;
+  --color-on-media: #FFFFFF;
+  --color-success: #34C759;
+  --color-warning: #FF9500;
+  --color-error: #FF3B30;
+  --color-glass-fill: rgba(255, 255, 255, 0.55);
+  --color-glass-fill-clear: rgba(255, 255, 255, 0.14);
+  --color-glass-fill-thick: rgba(255, 255, 255, 0.82);
+  --color-glass-hover: rgba(255, 255, 255, 0.74);
+  --color-glass-knob: rgba(255, 255, 255, 0.92);
+  --color-glass-tint: rgba(0, 122, 255, 0.86);
+  --color-glass-tint-hover: rgba(0, 102, 214, 0.9);
+  --color-glass-rim: rgba(255, 255, 255, 0.55);
+  --color-glass-highlight: rgba(255, 255, 255, 0.95);
+  --color-glass-highlight-low: rgba(255, 255, 255, 0.35);
+  --color-glass-sheen: rgba(255, 255, 255, 0.4);
+  --color-glass-sheen-strong: rgba(255, 255, 255, 0.35);
+  --color-glass-shadow: rgba(0, 0, 0, 0.12);
+  --color-glass-shadow-near: rgba(0, 0, 0, 0.06);
+  --color-glass-solid: #F7F7FA;
+  --color-dim: rgba(0, 0, 0, 0.35);
+  --color-scrim: rgba(0, 0, 0, 0.3);
+  --color-scene-1: #BFD7FF;
+  --color-scene-2: #FFD4C2;
+  --color-scene-3: #C9F0DE;
+}
+
+/* theme: light (default; the iOS light palette, glass is a milky white) */
+:root[data-theme="light"] {
+  --color-bg: #F2F2F7;
+  --color-surface: #FFFFFF;
+  --color-surface-2: #F2F2F7;
+  --color-ink: #000000;
+  --color-ink-secondary: rgba(60, 60, 67, 0.6);
+  --color-ink-tertiary: rgba(60, 60, 67, 0.3);
+  --color-separator: rgba(60, 60, 67, 0.29);
+  --color-fill: rgba(120, 120, 128, 0.2);
+  --color-fill-2: rgba(120, 120, 128, 0.16);
+  --color-fill-3: rgba(120, 120, 128, 0.12);
+  --color-accent: #007AFF;
+  --color-accent-hover: #0066D6;
+  --color-on-accent: #FFFFFF;
+  --color-on-media: #FFFFFF;
+  --color-success: #34C759;
+  --color-warning: #FF9500;
+  --color-error: #FF3B30;
+  --color-glass-fill: rgba(255, 255, 255, 0.55);
+  --color-glass-fill-clear: rgba(255, 255, 255, 0.14);
+  --color-glass-fill-thick: rgba(255, 255, 255, 0.82);
+  --color-glass-hover: rgba(255, 255, 255, 0.74);
+  --color-glass-knob: rgba(255, 255, 255, 0.92);
+  --color-glass-tint: rgba(0, 122, 255, 0.86);
+  --color-glass-tint-hover: rgba(0, 102, 214, 0.9);
+  --color-glass-rim: rgba(255, 255, 255, 0.55);
+  --color-glass-highlight: rgba(255, 255, 255, 0.95);
+  --color-glass-highlight-low: rgba(255, 255, 255, 0.35);
+  --color-glass-sheen: rgba(255, 255, 255, 0.4);
+  --color-glass-sheen-strong: rgba(255, 255, 255, 0.35);
+  --color-glass-shadow: rgba(0, 0, 0, 0.12);
+  --color-glass-shadow-near: rgba(0, 0, 0, 0.06);
+  --color-glass-solid: #F7F7FA;
+  --color-dim: rgba(0, 0, 0, 0.35);
+  --color-scrim: rgba(0, 0, 0, 0.3);
+  --color-scene-1: #BFD7FF;
+  --color-scene-2: #FFD4C2;
+  --color-scene-3: #C9F0DE;
+}
+
+/* theme: dark (the iOS dark palette, glass is smoked and its rim is a thin light line) */
+:root[data-theme="dark"] {
+  --color-bg: #000000;
+  --color-surface: #1C1C1E;
+  --color-surface-2: #2C2C2E;
+  --color-ink: #FFFFFF;
+  --color-ink-secondary: rgba(235, 235, 245, 0.6);
+  --color-ink-tertiary: rgba(235, 235, 245, 0.3);
+  --color-separator: rgba(84, 84, 88, 0.6);
+  --color-fill: rgba(120, 120, 128, 0.36);
+  --color-fill-2: rgba(120, 120, 128, 0.32);
+  --color-fill-3: rgba(120, 120, 128, 0.24);
+  --color-accent: #0A84FF;
+  --color-accent-hover: #3D9BFF;
+  --color-on-accent: #FFFFFF;
+  --color-on-media: #FFFFFF;
+  --color-success: #30D158;
+  --color-warning: #FF9F0A;
+  --color-error: #FF453A;
+  --color-glass-fill: rgba(40, 40, 46, 0.55);
+  --color-glass-fill-clear: rgba(255, 255, 255, 0.06);
+  --color-glass-fill-thick: rgba(30, 30, 34, 0.82);
+  --color-glass-hover: rgba(70, 70, 78, 0.65);
+  --color-glass-knob: rgba(255, 255, 255, 0.16);
+  --color-glass-tint: rgba(10, 132, 255, 0.86);
+  --color-glass-tint-hover: rgba(61, 155, 255, 0.9);
+  --color-glass-rim: rgba(255, 255, 255, 0.16);
+  --color-glass-highlight: rgba(255, 255, 255, 0.45);
+  --color-glass-highlight-low: rgba(255, 255, 255, 0.08);
+  --color-glass-sheen: rgba(255, 255, 255, 0.1);
+  --color-glass-sheen-strong: rgba(255, 255, 255, 0.25);
+  --color-glass-shadow: rgba(0, 0, 0, 0.5);
+  --color-glass-shadow-near: rgba(0, 0, 0, 0.4);
+  --color-glass-solid: #2A2A2E;
+  --color-dim: rgba(0, 0, 0, 0.35);
+  --color-scrim: rgba(0, 0, 0, 0.55);
+  --color-scene-1: #0F2E5C;
+  --color-scene-2: #4A1F3A;
+  --color-scene-3: #0E3B36;
+}
+
+/* accessibility: these follow the person's system settings and override the tokens above, in both
+   themes. Increase Contrast darkens the rim and the secondary text, Reduce Transparency turns the
+   glass into a solid surface (it comes last so it wins when both are on), Reduce Motion removes every
+   transition. */
+@media (prefers-contrast: more) {
+  :root, :root[data-theme="light"] { --color-glass-fill: rgba(255, 255, 255, 0.86); --color-glass-rim: rgba(0, 0, 0, 0.5); --color-glass-highlight: rgba(0, 0, 0, 0.6); --color-glass-highlight-low: rgba(0, 0, 0, 0.5); --color-ink-secondary: rgba(60, 60, 67, 0.85); --color-separator: rgba(60, 60, 67, 0.6); }
+  :root[data-theme="dark"] { --color-glass-fill: rgba(30, 30, 34, 0.86); --color-glass-rim: rgba(255, 255, 255, 0.6); --color-glass-highlight: rgba(255, 255, 255, 0.8); --color-glass-highlight-low: rgba(255, 255, 255, 0.5); --color-ink-secondary: rgba(235, 235, 245, 0.85); --color-separator: rgba(84, 84, 88, 0.9); }
+}
+@media (prefers-reduced-transparency: reduce) {
+  :root, :root[data-theme="light"] { --blur-glass: 0px; --blur-glass-clear: 0px; --blur-edge: 0px; --color-glass-fill: var(--color-glass-solid); --color-glass-fill-clear: var(--color-glass-solid); --color-glass-fill-thick: var(--color-glass-solid); --color-glass-hover: #FFFFFF; --color-glass-tint: var(--color-accent); --color-glass-tint-hover: var(--color-accent-hover); }
+  :root[data-theme="dark"] { --color-glass-fill: var(--color-glass-solid); --color-glass-fill-clear: var(--color-glass-solid); --color-glass-fill-thick: var(--color-glass-solid); --color-glass-hover: #3A3A3F; --color-glass-tint: var(--color-accent); --color-glass-tint-hover: var(--color-accent-hover); }
+}
+@media (prefers-reduced-motion: reduce) {
+  :root { --motion-fast: 0ms; --motion-slow: 0ms; }
+}

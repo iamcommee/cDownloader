@@ -1,0 +1,25 @@
+How to install cDownloader
+
+1. Drag cDownloader onto the Applications folder in this window.
+2. Open cDownloader from your Applications folder.
+
+Everything for YouTube and video downloads is included. There is nothing else to install.
+
+
+The first time you open it
+
+macOS may say it could not check cDownloader for harmful software. It says this because cDownloader is
+not registered with Apple, not because something is wrong. You only need to do this once:
+
+  a. Click "Done" (not "Move to Trash").
+  b. Open System Settings and choose Privacy & Security.
+  c. Scroll down to the message about cDownloader and click "Open Anyway".
+  d. Confirm with your password or Touch ID, then click "Open Anyway" once more.
+
+From then on, cDownloader opens normally.
+
+
+Using it with your browser
+
+To let cDownloader take over downloads from Chrome, Edge or Brave, open cDownloader's Settings,
+choose Browser, and follow the three steps shown there.

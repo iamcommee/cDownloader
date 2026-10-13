@@ -1,0 +1,72 @@
+{
+  "manifest_version": 3,
+  "name": "cDownloader Integration",
+  "description": "Hands downloads and videos from the browser to the cDownloader app for Mac.",
+  "version": "1.0.0",
+  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAzLm8h6in/bqr1VxbeRN5hSu9xY1Wz92yq9wSzAQXsubTKtdjWfvaaOswHGw+8upnkaKaT5Wgx0BVZFoRUHInabZrUo05UujPCkq0WiMzMckSwkU+yfzwjLiP1Z6zFEfGqJwZ0s36YkoP9tmH88bq9n7HZ23zqFJeqxlx6OYe+Hri8MGcNfeJuSPaBL0CV4Y2OVgwZ/WR4Bm270Eh7Ld0/hc98HdOnI8xmXqJ/lWUO/1SDige7V/ViY7tyiYIesHigYlq/9tz/8kAYs2v2KO2vrwzXt57UrqxECespNt7u30owKZAuByxSOXico9fLPughlw0umIPXlusgVLxm42UVQIDAQAB",
+  "minimum_chrome_version": "111",
+  "icons": {
+    "16": "icons/icon16.png",
+    "32": "icons/icon32.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "32": "icons/icon32.png"
+    }
+  },
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "<all_urls>"
+      ],
+      "js": [
+        "content.js"
+      ],
+      "all_frames": true,
+      "run_at": "document_start"
+    },
+    {
+      "matches": [
+        "<all_urls>"
+      ],
+      "js": [
+        "page-hooks.js"
+      ],
+      "all_frames": true,
+      "run_at": "document_start",
+      "world": "MAIN"
+    }
+  ],
+  "permissions": [
+    "downloads",
+    "contextMenus",
+    "cookies",
+    "nativeMessaging",
+    "storage",
+    "tabs",
+    "webRequest"
+  ],
+  "host_permissions": [
+    "<all_urls>"
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "rules.js",
+        "styles/liquidglass-components.css",
+        "styles/liquidglass-tokens.css"
+      ],
+      "matches": [
+        "<all_urls>"
+      ]
+    }
+  ]
+}
