@@ -267,10 +267,9 @@ struct MenuBarContent: View {
         let speed = Format.speed(model.totalSpeed)
         Text(model.activeCount == 0 ? String(localized: "No active downloads") : String(localized: "\(model.activeCount) downloading \(speed)"))
         Divider()
-        Button("Show cDownloader") { openWindow(id: "main"); NSApp.activate(ignoringOtherApps: true) }
+        Button("Show cDownloader") { showMainWindow() }
         Button("Add URL…") {
-            openWindow(id: "main")
-            NSApp.activate(ignoringOtherApps: true)
+            showMainWindow()
             model.showAddURL = true
         }
         Toggle("Speed Limiter", isOn: Binding(get: { model.speedLimiterOn }, set: { model.speedLimiterOn = $0 }))
@@ -284,6 +283,13 @@ struct MenuBarContent: View {
         Button("Show Drop Target") { openWindow(id: "dropTarget") }
         Divider()
         Button("Quit cDownloader") { NSApp.terminate(nil) }
+    }
+
+    /// Back in the Dock and active first, then the window: it opens once, without a redraw halfway through.
+    private func showMainWindow() {
+        DockIcon.showInDock()
+        NSApp.activate(ignoringOtherApps: true)
+        openWindow(id: "main")
     }
 }
 

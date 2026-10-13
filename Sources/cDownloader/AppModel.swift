@@ -137,10 +137,16 @@ final class AppModel {
     }
 
     func request(_ window: WindowRequest) {
-        windowRequests.append(window)
         // Only a visible view can open windows; when the main window is closed, reopen it through its URL scheme.
         let mainVisible = NSApp.windows.contains { $0.isVisible && ($0.identifier?.rawValue.hasPrefix("main") ?? false) }
+        // Back in the Dock and active before a window opens, so it opens once, without a redraw halfway. The floating
+        // drop target alone does not need the Dock, but the main window opened below for it does.
+        if window != .dropTarget || !mainVisible {
+            DockIcon.showInDock()
+        }
+        windowRequests.append(window)
         if !mainVisible, let url = URL(string: "cdownloader://show") {
+            NSApp.activate(ignoringOtherApps: true)
             NSWorkspace.shared.open(url)
         }
     }

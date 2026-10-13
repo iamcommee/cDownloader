@@ -138,6 +138,13 @@ enum DockIcon {
         if policy == .regular { NSApp.activate(ignoringOtherApps: true) }
     }
 
+    /// Called before a window is asked to open: switching from menu-bar-only back to a Dock app while the window is
+    /// already opening makes macOS redraw it mid-animation, which flashes a line along the sidebar edge.
+    static func showInDock() {
+        guard NSApp.activationPolicy() != .regular else { return }
+        NSApp.setActivationPolicy(.regular)
+    }
+
     /// The app's own windows count; the floating drop target and the menu bar menu do not.
     private static func counts(_ window: NSWindow) -> Bool {
         guard window.styleMask.contains(.titled), !(window is NSPanel) else { return false }
