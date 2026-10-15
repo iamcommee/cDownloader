@@ -120,6 +120,16 @@ const protectedHints = /(widevine|playready|fairplay|\.ism\/manifest|vnd\.ms-sst
 // YouTube streams picture and sound in separate pieces from googlevideo.com; the page itself is offered instead.
 const youtubePieces = /^https?:\/\/([a-z0-9-]+\.)*googlevideo\.com\/videoplayback/i;
 
+/** Facebook and Instagram fetch picture and sound in byte ranges named in the address; one range is not a video. */
+function isByteRangePiece(url) {
+  try {
+    const params = new URL(url).searchParams;
+    return params.has('bytestart') && params.has('byteend');
+  } catch {
+    return false;
+  }
+}
+
 /**
  * Classifies a network response seen by the add-on.
  * response: { url, headers } where headers is an object or an array of { name, value }.
@@ -133,7 +143,7 @@ export function isMediaResponse(response, options = {}) {
   const length = Number(headerValue(response.headers, 'content-length'));
   const minimumBytes = Number.isFinite(options.minimumBytes) ? options.minimumBytes : 300 * 1024;
   const ext = extensionOf(url);
-  if (adOrTracking.test(url) || youtubePieces.test(url)) return none;
+  if (adOrTracking.test(url) || youtubePieces.test(url) || isByteRangePiece(url)) return none;
   // Pieces of a stream (HLS .ts, DASH and CMAF segments) are not videos on their own.
   if (streamPieceTypes.includes(type) || streamPieceExtensions.includes(ext)) return none;
 
@@ -285,6 +295,72 @@ export function youtubeLink(address) {
     default:
       return null;
   }
+}
+
+const facebookNumber = /^\d+$/;
+
+/**
+ * Whether an address is a Facebook video, the same way the app reads it (FacebookLinks.swift): watch pages,
+ * a page's videos, reels, share links of videos and reels, the embedded player and fb.watch short links.
+ * Returns { type: 'video', url } with the address minus its #part, or null.
+ */
+export function facebookVideoLink(address) {
+  if (typeof address !== 'string') return null;
+  let url;
+  try {
+    url = new URL(address);
+  } catch {
+    return null;
+  }
+  if (url.protocol !== 'http:' && url.protocol !== 'https:') return null;
+  const host = url.hostname.toLowerCase();
+  const parts = url.pathname.split('/').filter(Boolean);
+  const has = (name) => Boolean(url.searchParams.get(name));
+  let video = false;
+  if (host === 'fb.watch') {
+    video = parts.length > 0;
+  } else if (host === 'facebook.com' || host.endsWith('.facebook.com')) {
+    const path = parts.join('/');
+    switch (parts[0]) {
+      case 'watch':
+        video = (path === 'watch' || path === 'watch/live') && has('v');
+        break;
+      case 'video.php':
+        video = path === 'video.php' && has('v');
+        break;
+      case 'video':
+        video = path === 'video/video.php' && has('v');
+        break;
+      case 'reel':
+        video = facebookNumber.test(parts[1] || '');
+        break;
+      case 'share':
+        video = parts.length > 2 && (parts[1] === 'v' || parts[1] === 'r');
+        break;
+      case 'plugins':
+        video = path === 'plugins/video.php' && has('href');
+        break;
+      default:
+        // A page's video: /{page}/videos/{id} or /{page}/videos/{title}/{id}.
+        video = parts[1] === 'videos' && (facebookNumber.test(parts[2] || '') || facebookNumber.test(parts[3] || ''));
+    }
+  }
+  if (!video) return null;
+  url.hash = '';
+  return { type: 'video', url: url.href };
+}
+
+/**
+ * A video page the app downloads through yt-dlp: a YouTube video or playlist, or a Facebook video.
+ * Returns { site, type, url, cookieUrl } or null. cookieUrl is the address whose sign-in goes along,
+ * so a short link such as fb.watch still carries the Facebook sign-in.
+ */
+export function webVideoLink(address) {
+  const youtube = youtubeLink(address);
+  if (youtube) return { site: 'youtube', type: youtube.type, url: youtube.url, cookieUrl: 'https://www.youtube.com/' };
+  const facebook = facebookVideoLink(address);
+  if (facebook) return { site: 'facebook', type: facebook.type, url: facebook.url, cookieUrl: 'https://www.facebook.com/' };
+  return null;
 }
 
 /** The YouTube qualities offered, by the names the app uses (VideoQuality raw values). */

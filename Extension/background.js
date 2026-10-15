@@ -1,6 +1,6 @@
 // cDownloader add-on service worker: takes over downloads, adds context menu items,
 // spots video and audio on pages, and talks to the cDownloader app through the native helper.
-import { shouldIntercept, isMediaResponse, pickDefaultMedia, youtubeLink } from './rules.js';
+import { shouldIntercept, isMediaResponse, pickDefaultMedia, webVideoLink } from './rules.js';
 
 const HOST = 'com.cdownloader.host';
 const CLICK_WINDOW_MS = 3000;
@@ -70,8 +70,9 @@ async function cookieHeader(url) {
   }
 }
 
-async function describe(url, extra = {}) {
-  return { url, cookies: await cookieHeader(url), userAgent: navigator.userAgent, ...extra };
+// cookieUrl is the address whose sign-in goes along; a video page sends its site's sign-in (see webVideoLink).
+async function describe(url, extra = {}, cookieUrl = url) {
+  return { url, cookies: await cookieHeader(cookieUrl), userAgent: navigator.userAgent, ...extra };
 }
 
 async function sendToApp(downloads, extra = {}) {
@@ -152,18 +153,18 @@ async function collectLinks(tabId, frameId, selectionOnly) {
 chrome.contextMenus.onClicked.addListener(async (info, tab) => {
   const referer = info.pageUrl || tab?.url;
   if (info.menuItemId === 'cdownloader-link' && info.linkUrl) {
-    // A YouTube link goes over as its main address, so the YouTube sign-in cookies travel with it.
-    const youtube = youtubeLink(info.linkUrl);
-    await sendToApp([await describe(youtube ? youtube.url : info.linkUrl, { referer, kind: youtube ? 'youtube' : undefined })]);
+    // A YouTube or Facebook video link goes over as a video page, with that site's sign-in.
+    const video = webVideoLink(info.linkUrl);
+    await sendToApp([await describe(video ? video.url : info.linkUrl, { referer, kind: video ? 'webvideo' : undefined }, video?.cookieUrl)]);
   } else if (info.menuItemId === 'cdownloader-selection' || info.menuItemId === 'cdownloader-page') {
     const links = await collectLinks(tab.id, info.frameId ?? 0, info.menuItemId === 'cdownloader-selection');
     const downloads = await Promise.all(links.map((link) => describe(link.url, { referer, fileName: undefined })));
     await sendToApp(downloads, { showList: true, pageURL: referer });
   } else if (info.menuItemId === 'cdownloader-media') {
-    // YouTube's player plays from a blob, so the video page itself is what gets downloaded.
-    const youtube = [info.frameUrl, info.pageUrl].map(youtubeLink).find((link) => link?.type === 'video');
-    if (youtube) {
-      await sendToApp([await describe(youtube.url, { referer, kind: 'youtube' })]);
+    // YouTube's and Facebook's players play from a blob, so the video page itself is what gets downloaded.
+    const video = [info.frameUrl, info.pageUrl].map(webVideoLink).find((link) => link?.type === 'video');
+    if (video) {
+      await sendToApp([await describe(video.url, { referer, kind: 'webvideo' }, video.cookieUrl)]);
       return;
     }
     let source = info.srcUrl;
@@ -241,8 +242,13 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       case 'mediaDownload': {
         const referer = sender.tab?.url;
         const item = message.item;
-        const kind = item.kind === 'hls' || item.kind === 'youtube' ? item.kind : undefined;
-        sendResponse(await sendToApp([await describe(item.url, { referer, kind, quality: item.kind === 'youtube' ? item.quality : undefined })]));
+        // A video page is checked again here, so its site's sign-in only goes along with a real video address.
+        const video = item.kind === 'webvideo' ? webVideoLink(item.url) : null;
+        if (video) {
+          sendResponse(await sendToApp([await describe(video.url, { referer, kind: 'webvideo', quality: item.quality }, video.cookieUrl)]));
+        } else {
+          sendResponse(await sendToApp([await describe(item.url, { referer, kind: item.kind === 'hls' ? 'hls' : undefined })]));
+        }
         break;
       }
       case 'getState': {

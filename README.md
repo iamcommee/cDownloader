@@ -13,6 +13,7 @@ It was rebuilt from scratch by studying what IDM does (its help files, menus and
 - **Speed limiter and quotas.** Limit the total speed or one download's speed, or cap how much is downloaded every few hours.
 - **Browser add-on.** Takes over downloads of chosen file types and adds right-click items ("Download with cDownloader", "Download all links"). It also shows a "Download this video" button on web videos. Hold Option while clicking a link to let the browser download it instead.
 - **YouTube.** Downloads YouTube videos, Shorts and whole playlists in the quality you pick: the best available, 1080p, 720p, 480p, 360p, or sound only. The "Download video" button appears on YouTube pages, right-clicking a YouTube link works, and a playlist link offers every video in it. The work is done by yt-dlp, a free tool that comes with cDownloader and keeps itself up to date (see "Video tools are included" below).
+- **Facebook.** Downloads Facebook videos and reels in the same qualities, through the same yt-dlp. The "Download video" button appears on a Facebook video page, and on a video in the feed when its post links to the video. Right-clicking a Facebook video link works, and so does pasting a Facebook video address into the app (watch pages, a page's videos, reels, share links and `fb.watch` short links). Downloads started from the browser add-on pass your Facebook sign-in along, so videos that only your friends or groups can see download too.
 - **Video streams.** Downloads HLS streams (the `.m3u8` playlists many sites use), including the standard encrypted kind. The result is turned into an `.mp4` by ffmpeg, which comes with cDownloader. Videos protected with DRM (copy protection) are labeled as protected and are never downloaded.
 - **Site grabber.** A four-step wizard that explores a website and lists every file of the types you want, for example all PDFs, ready to download in one go.
 - **Stays out of the way.** Closing the window keeps cDownloader downloading in the menu bar (the arrow icon at the top of the screen), without a Dock icon, like a tray app on Windows. The icon opens the window again or quits. A download's progress shows in a panel under the list, and a finished download shows a short banner in the window instead of popping up windows. Deleting a download can also move its file to the Trash.
@@ -32,7 +33,7 @@ The first build also downloads the video tools the app includes (about 150 MB, s
 
 ## Install it
 
-Give people `dist/cDownloader.dmg`. They open it, drag cDownloader onto the Applications shortcut next to it, and open the app. That's all: everything for YouTube and video streams is included. The app takes about 250 MB, mostly for the video tools, and the installer about 145 MB. An installer works on the same kind of Mac it was built on: one built on an Apple Silicon Mac (M1 or newer) does not run on an older Intel Mac, and the other way round.
+Give people `dist/cDownloader.dmg`. They open it, drag cDownloader onto the Applications shortcut next to it, and open the app. That's all: everything for YouTube, Facebook and video streams is included. The app takes about 250 MB, mostly for the video tools, and the installer about 145 MB. An installer works on the same kind of Mac it was built on: one built on an Apple Silicon Mac (M1 or newer) does not run on an older Intel Mac, and the other way round.
 
 The build has a free signature (an "ad-hoc" signature), not one registered with Apple. So the first time someone opens it, macOS says it could not check the app. They click "Done", then go to System Settings > Privacy & Security and click "Open Anyway" next to cDownloader. This is needed once. The note "How to Install" in the installer window explains it step by step. Signing the app with a paid Apple Developer ID, and having Apple check it, would remove this step.
 
@@ -47,11 +48,11 @@ The add-on's popup shows **Connected** when everything works.
 
 ## Video tools are included
 
-YouTube does not serve a video as one plain file: picture and sound come as separate pieces, and YouTube changes how it hands them out every few weeks. cDownloader leaves that to free tools that it carries inside the app, so nobody installs anything:
+YouTube and Facebook do not serve a video as one plain file: picture and sound come as separate pieces, and YouTube changes how it hands them out every few weeks. cDownloader leaves that to free tools that it carries inside the app, so nobody installs anything:
 
 | Tool | What it does |
 |---|---|
-| yt-dlp | Downloads YouTube videos. Its makers keep up with YouTube's changes. |
+| yt-dlp | Downloads YouTube and Facebook videos. Its makers keep up with both sites' changes. |
 | deno | Runs the small scripts YouTube uses to hide its video addresses, on behalf of yt-dlp. |
 | ffmpeg and ffprobe | Join picture and sound into one `.mp4`, and turn video streams into `.mp4` files. |
 
@@ -61,9 +62,9 @@ YouTube does not serve a video as one plain file: picture and sound come as sepa
 
 **For developers:** to include newer versions, change the versions, addresses and checksums at the top of `scripts/fetch-tools.sh`. When the app runs without the included tools (for example with `swift run`), it uses copies installed with Homebrew instead (`brew install yt-dlp deno ffmpeg`).
 
-On some networks YouTube asks to "confirm you're not a bot". Downloads started from the browser add-on pass your YouTube sign-in along (as a file only you can read, deleted as soon as yt-dlp finishes), which usually satisfies it. For addresses you add in the app itself, choose your browser under **Settings > Video Sites** so yt-dlp can read the sign-in there; macOS may ask for your password the first time.
+On some networks YouTube asks to "confirm you're not a bot". Downloads started from the browser add-on pass your YouTube sign-in along (as a file only you can read, deleted as soon as yt-dlp finishes), which usually satisfies it. For addresses you add in the app itself, choose your browser under **Settings > Video Sites** so yt-dlp can read the sign-in there; macOS may ask for your password the first time. The same goes for Facebook videos that need you to be signed in: the add-on passes your Facebook sign-in along, and the browser chosen under **Settings > Video Sites** covers addresses added in the app.
 
-YouTube's terms allow downloading only where YouTube offers a download button or the owner gave permission, for example your own videos or videos under a Creative Commons license. Paid and copy-protected videos are not downloaded.
+YouTube's terms allow downloading only where YouTube offers a download button or the owner gave permission, for example your own videos or videos under a Creative Commons license. Paid and copy-protected videos are not downloaded. On Facebook too, download only videos that are yours or that you have permission to save.
 
 ## Use it from the Terminal
 
@@ -112,7 +113,8 @@ Your downloads list and settings are saved in `~/Library/Application Support/cDo
 ## Known limits
 
 - DASH video streams (separate audio and video tracks, used by some large video sites) are detected but not downloaded yet. YouTube is the exception, through yt-dlp.
-- YouTube downloads depend on yt-dlp. When YouTube changes something, they can fail until a fixed yt-dlp comes out and the app's daily check picks it up.
+- YouTube and Facebook downloads depend on yt-dlp. When either site changes something, they can fail until a fixed yt-dlp comes out and the app's daily check picks it up.
+- In Facebook's feed, the "Download video" button appears only when the post links to its own video. If it does not show, open the video first (click its date or time), or right-click the link to the video and choose "Download with cDownloader".
 - Live streams that have no end are not supported.
 - The site grabber reads links from the page's HTML. It does not run the page's JavaScript, so links that scripts create are missed.
 - FTP uses passive mode only. Encrypted FTP (FTPS) is not supported.

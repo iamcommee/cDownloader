@@ -1,11 +1,12 @@
 import Foundation
 
-/// yt-dlp, the program cDownloader uses (when installed) to download from YouTube. YouTube splits picture
-/// and sound and scrambles the addresses of the pieces, and changes how every few weeks; yt-dlp's maintainers
-/// keep up with that, so the app hands the work to it instead of copying it.
+/// yt-dlp, the program cDownloader uses (when installed) to download from YouTube and Facebook. Both split
+/// picture and sound into pieces, and YouTube scrambles their addresses and changes how every few weeks;
+/// yt-dlp's maintainers keep up with that, so the app hands the work to it instead of copying it.
 public enum YtDlp {
-    public static let missingMessage = "YouTube downloads need yt-dlp, which comes with cDownloader. Reinstall cDownloader, or install it with Homebrew: brew install yt-dlp"
+    public static let missingMessage = "YouTube and Facebook downloads need yt-dlp, which comes with cDownloader. Reinstall cDownloader, or install it with Homebrew: brew install yt-dlp"
     public static let botCheckMessage = "YouTube asked to confirm you're not a bot. Start the download from the browser add-on, which passes your YouTube sign-in, or choose a browser under Settings > Video Sites."
+    public static let signInMessage = "This video is only for people who are signed in. Start the download from the browser add-on while signed in, or choose a browser under Settings > Video Sites."
     public static let playlistMessage = "This link is a playlist whose videos could not be read. Check the address, then add it again."
     public static let noFileMessage = "yt-dlp finished without leaving a file."
 
@@ -168,6 +169,7 @@ public enum YtDlp {
     /// A short reason for a failed run, taken from yt-dlp's last error line.
     public static func failureMessage(stderr: String, exitCode: Int32) -> String {
         if stderr.contains("not a bot") { return botCheckMessage }
+        if stderr.contains("only available for registered users") { return signInMessage }
         let fallback = "yt-dlp stopped (code \(exitCode))"
         let lines = stderr.split(whereSeparator: \.isNewline).map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
         guard let last = lines.last(where: { $0.hasPrefix("ERROR:") }) else { return fallback }
@@ -183,8 +185,9 @@ public enum YtDlp {
     }
 
     /// A cookie file in the format yt-dlp reads, made from the Cookie header the browser add-on sent with a
-    /// YouTube address. Pairs that could break the file's lines are left out. Nil when nothing usable is left.
-    public static func cookieFile(header: String?) -> String? {
+    /// video address. Every line names the site's own domain, so yt-dlp sends the sign-in to that site only.
+    /// Pairs that could break the file's lines are left out. Nil when nothing usable is left.
+    public static func cookieFile(header: String?, site: WebVideoSite) -> String? {
         guard let header else { return nil }
         var lines: [String] = []
         for pair in header.split(separator: ";") {
@@ -192,7 +195,7 @@ public enum YtDlp {
             guard !piece.contains(where: { $0 == "\t" || $0.isNewline }), let equals = piece.firstIndex(of: "=") else { continue }
             let name = piece[..<equals].trimmingCharacters(in: .whitespaces)
             guard !name.isEmpty else { continue }
-            lines.append(".youtube.com\tTRUE\t/\tTRUE\t4102444800\t\(name)\t\(piece[piece.index(after: equals)...])")
+            lines.append("\(site.cookieDomain)\tTRUE\t/\tTRUE\t4102444800\t\(name)\t\(piece[piece.index(after: equals)...])")
         }
         guard !lines.isEmpty else { return nil }
         return (["# Netscape HTTP Cookie File"] + lines).joined(separator: "\n") + "\n"
@@ -268,7 +271,7 @@ public enum YtDlpPlaylist {
         try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: folder) }
         var cookiesFile: URL?
-        if let text = YtDlp.cookieFile(header: cookiesHeader) {
+        if let text = YtDlp.cookieFile(header: cookiesHeader, site: .youtube) {
             let file = folder.appendingPathComponent("cookies.txt")
             if FileManager.default.createFile(atPath: file.path, contents: Data(text.utf8), attributes: [.posixPermissions: 0o600]) {
                 cookiesFile = file

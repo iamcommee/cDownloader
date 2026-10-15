@@ -199,8 +199,8 @@ public final class DownloadLibrary {
     public func makeItem(from incoming: IncomingDownload, folder: String?) -> DownloadItem {
         let playlistTypes = ["application/vnd.apple.mpegurl", "application/x-mpegurl", "audio/mpegurl", "audio/x-mpegurl"]
         let mime = incoming.mimeType?.split(separator: ";").first?.trimmingCharacters(in: .whitespaces).lowercased() ?? ""
-        // A YouTube page becomes a video of the chosen quality (or the default one), downloaded through yt-dlp.
-        let webQuality = YouTubeLinks.classify(incoming.url) == nil
+        // A YouTube or Facebook video page becomes a video of the chosen quality (or the default one), downloaded through yt-dlp.
+        let webQuality = WebVideoLinks.site(of: incoming.url) == nil
             ? nil : incoming.quality.flatMap(VideoQuality.init(rawValue:)) ?? settings.webVideoQuality
         let isStream = webQuality == nil && (incoming.kind == "hls" || incoming.url.pathExtension.lowercased() == "m3u8" || playlistTypes.contains(mime))
         var name = incoming.fileName.map(FileNameResolver.sanitize) ?? ""

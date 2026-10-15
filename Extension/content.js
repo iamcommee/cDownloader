@@ -186,8 +186,8 @@
 
   let chosenKey = null;
   let currentChoice = null;
-  let renderedHref = null;
-  let youtubeConfig = null;
+  let renderedVideo = null;
+  let webVideoConfig = null;
   let goStatus = null;
   let goStatusTimer = 0;
   let dismissedOn = null;
@@ -293,18 +293,41 @@
     }, 2500);
   }
 
-  // A YouTube video page offers qualities (yt-dlp in the app does the download); other pages offer the media
-  // found on them. Each option: { key, name, detail, short, icon, audio, title, item }.
-  function youtubeVideo() {
-    const link = rules.youtubeLink(location.href);
-    return link?.type === 'video' ? link : null;
+  // A YouTube or Facebook video offers qualities (yt-dlp in the app does the download); other pages offer the
+  // media found on them. Each option: { key, name, detail, short, icon, audio, title, item }.
+  const onFacebook = /(^|\.)facebook\.com$/i.test(location.hostname);
+
+  // The video the panel offers: the page's own address when it is a video, or on Facebook's feed, where the
+  // address is the feed's, the video of the post around the largest player.
+  function pageVideo() {
+    const own = rules.webVideoLink(location.href);
+    if (own?.type === 'video') return own;
+    if (!onFacebook) return null;
+    const player = largestPlayer();
+    return player ? facebookVideoNear(player) : null;
+  }
+
+  // A Facebook post links to its own video (the time stamp, or the video's title). The search climbs from the
+  // player to the post around it, and stops before a box that also holds another video, so a link from the
+  // next post is never taken.
+  function facebookVideoNear(player) {
+    for (let box = player.parentElement; box && box !== document.body; box = box.parentElement) {
+      if (box.querySelectorAll('video').length > 1) return null;
+      for (const link of box.querySelectorAll('a[href]')) {
+        const video = rules.webVideoLink(link.href);
+        if (video?.site === 'facebook') return video;
+      }
+      if (box.matches('[role="article"], [aria-posinset]')) return null;
+    }
+    return null;
   }
 
   function panelChoices() {
-    const video = youtubeVideo();
+    const video = pageVideo();
     if (video) {
-      const preferred = youtubeConfig?.webVideoQuality;
+      const preferred = webVideoConfig?.webVideoQuality;
       return {
+        video: video.url,
         heading: 'Quality',
         fallbackKey: rules.videoQualities.some((quality) => quality.value === preferred) ? preferred : 'best',
         options: rules.videoQualities.map((quality) => ({
@@ -315,12 +338,13 @@
           icon: quality.value === 'audio' ? 'audio' : 'video',
           audio: quality.value === 'audio',
           title: video.url,
-          item: { url: video.url, kind: 'youtube', quality: quality.value },
+          item: { url: video.url, kind: 'webvideo', quality: quality.value },
         })),
       };
     }
     const usable = media.filter((item) => !item.protected);
     return {
+      video: null,
       heading: `${usable.length} found on this page`,
       fallbackKey: rules.pickDefaultMedia(usable)?.url,
       options: usable.map((item) => ({
@@ -375,7 +399,7 @@
   function renderPanel() {
     if (dismissedOn === location.href) return;
     const target = largestPlayer();
-    const { heading, fallbackKey, options } = panelChoices();
+    const { video, heading, fallbackKey, options } = panelChoices();
     if (!target || (options.length === 0 && media.length === 0)) return;
     if (target !== panelTarget) {
       if (panelTarget) sizeWatcher?.unobserve(panelTarget);
@@ -388,7 +412,7 @@
     const choice = options.find((option) => option.key === chosenKey) || options.find((option) => option.key === fallbackKey) || options[options.length - 1];
     if (choice) chosenKey = choice.key;
     currentChoice = choice || null;
-    renderedHref = location.href;
+    renderedVideo = video;
     const pick = shadow.querySelector('.pick');
     const menu = shadow.querySelector('.menu');
     pick.hidden = options.length < 2;
@@ -415,21 +439,25 @@
     place();
   }
 
-  // YouTube moves between videos without loading a new page, so its pages are looked at once a second.
-  if (/(^|\.)youtube(-nocookie)?\.com$/i.test(location.hostname)) {
+  // YouTube and Facebook move between videos without loading a new page, and Facebook's feed plays one video
+  // after another as it scrolls, so these pages are looked at once a second.
+  if (onFacebook || /(^|\.)youtube(-nocookie)?\.com$/i.test(location.hostname)) {
     let lastHref = location.href;
     setInterval(async () => {
-      const video = youtubeVideo();
+      const video = pageVideo();
       if (location.href !== lastHref) {
         lastHref = location.href;
-        youtubeConfig = null;
-        if (!video && media.length === 0 && panelHost) removePanel();
+        webVideoConfig = null;
       }
-      if (!video) return;
+      if (!video) {
+        // The offered video is gone (another page, or a feed post without one), so its panel goes too.
+        if (renderedVideo && media.length === 0 && panelHost) removePanel();
+        return;
+      }
       // Asked again on every new page, so a change of the default quality in the app shows up.
-      if (!youtubeConfig) youtubeConfig = await chrome.runtime.sendMessage({ type: 'getConfig' }).catch(() => null);
-      if (!youtubeConfig?.videoPanelEnabled || siteExcluded(youtubeConfig)) return;
-      if (!panelHost || location.href !== renderedHref || largestPlayer() !== panelTarget) renderPanel();
+      if (!webVideoConfig) webVideoConfig = await chrome.runtime.sendMessage({ type: 'getConfig' }).catch(() => null);
+      if (!webVideoConfig?.videoPanelEnabled || siteExcluded(webVideoConfig)) return;
+      if (!panelHost || video.url !== renderedVideo || largestPlayer() !== panelTarget) renderPanel();
     }, 1000);
   }
 

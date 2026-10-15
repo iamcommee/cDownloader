@@ -62,6 +62,90 @@ import Testing
         #expect(YouTubeLinks.watchURL(id: Self.id).absoluteString == "https://www.youtube.com/watch?v=\(Self.id)")
     }
 
+    // MARK: T19-01, T19-02 (Facebook)
+
+    struct FacebookRow: Sendable, CustomTestStringConvertible {
+        var label: String
+        var url: String
+        var expected: Bool
+        var testDescription: String { label }
+    }
+
+    /// The same addresses are checked in the add-on (Extension/rules.test.js, T19-07), so both sides agree.
+    @Test(arguments: [
+        FacebookRow(label: "watch", url: "https://www.facebook.com/watch?v=1", expected: true),
+        FacebookRow(label: "watch with slash", url: "https://www.facebook.com/watch/?v=1", expected: true),
+        FacebookRow(label: "mobile watch", url: "https://m.facebook.com/watch/?v=1", expected: true),
+        FacebookRow(label: "live", url: "https://web.facebook.com/watch/live/?v=1", expected: true),
+        FacebookRow(label: "video.php without www", url: "https://facebook.com/video.php?v=1", expected: true),
+        FacebookRow(label: "video/video.php", url: "https://www.facebook.com/video/video.php?v=1", expected: true),
+        FacebookRow(label: "page video", url: "https://www.facebook.com/page/videos/123", expected: true),
+        FacebookRow(label: "page video with slash", url: "https://www.facebook.com/page/videos/123/", expected: true),
+        FacebookRow(label: "page video with slug", url: "https://www.facebook.com/page/videos/some-slug/123", expected: true),
+        FacebookRow(label: "mbasic", url: "https://mbasic.facebook.com/page/videos/123", expected: true),
+        FacebookRow(label: "business", url: "https://business.facebook.com/page/videos/123", expected: true),
+        FacebookRow(label: "reel", url: "https://www.facebook.com/reel/123", expected: true),
+        FacebookRow(label: "shared video", url: "https://www.facebook.com/share/v/AbC1/", expected: true),
+        FacebookRow(label: "shared reel", url: "https://www.facebook.com/share/r/AbC1", expected: true),
+        FacebookRow(label: "embedded player", url: "https://www.facebook.com/plugins/video.php?href=https%3A%2F%2Fwww.facebook.com%2Fpage%2Fvideos%2F123%2F", expected: true),
+        FacebookRow(label: "fb.watch", url: "https://fb.watch/AbC1/", expected: true),
+        FacebookRow(label: "http scheme", url: "http://www.facebook.com/reel/123", expected: true),
+        FacebookRow(label: "uppercase host", url: "HTTPS://WWW.FaceBook.COM/reel/123", expected: true),
+        FacebookRow(label: "home", url: "https://www.facebook.com/", expected: false),
+        FacebookRow(label: "profile", url: "https://www.facebook.com/somepage", expected: false),
+        FacebookRow(label: "post", url: "https://www.facebook.com/page/posts/123", expected: false),
+        FacebookRow(label: "photo", url: "https://www.facebook.com/photo.php?fbid=1", expected: false),
+        FacebookRow(label: "shared post", url: "https://www.facebook.com/share/p/AbC1", expected: false),
+        FacebookRow(label: "videos without a page", url: "https://www.facebook.com/videos/", expected: false),
+        FacebookRow(label: "videos tab", url: "https://www.facebook.com/page/videos/", expected: false),
+        FacebookRow(label: "videos slug without id", url: "https://www.facebook.com/page/videos/some-slug", expected: false),
+        FacebookRow(label: "watch without v", url: "https://www.facebook.com/watch/", expected: false),
+        FacebookRow(label: "watch with empty v", url: "https://www.facebook.com/watch/?v=", expected: false),
+        FacebookRow(label: "reel without id", url: "https://www.facebook.com/reel/", expected: false),
+        FacebookRow(label: "reel with letters", url: "https://www.facebook.com/reel/abc", expected: false),
+        FacebookRow(label: "share without code", url: "https://www.facebook.com/share/v/", expected: false),
+        FacebookRow(label: "embedded player without href", url: "https://www.facebook.com/plugins/video.php", expected: false),
+        FacebookRow(label: "fb.watch without code", url: "https://fb.watch/", expected: false),
+        FacebookRow(label: "look-alike prefix (guard)", url: "https://evilfacebook.com/watch/?v=1", expected: false),
+        FacebookRow(label: "look-alike suffix (guard)", url: "https://facebook.com.evil.example/watch/?v=1", expected: false),
+        FacebookRow(label: "look-alike short (guard)", url: "https://evilfb.watch/AbC1", expected: false),
+        FacebookRow(label: "look-alike short suffix (guard)", url: "https://fb.watch.evil.example/AbC1", expected: false),
+        FacebookRow(label: "ftp scheme (guard)", url: "ftp://www.facebook.com/reel/123", expected: false),
+        FacebookRow(label: "file scheme (guard)", url: "file:///reel/123", expected: false),
+        FacebookRow(label: "video piece (guard)", url: "https://video.xx.fbcdn.net/v/a.mp4", expected: false),
+        FacebookRow(label: "YouTube (guard)", url: "https://www.youtube.com/watch?v=\(id)", expected: false),
+    ])
+    func t19_01_recognizesFacebookVideoLinks(row: FacebookRow) throws {
+        let url = try #require(URL(string: row.url))
+        #expect(FacebookLinks.isVideo(url) == row.expected)
+    }
+
+    struct SiteRow: Sendable, CustomTestStringConvertible {
+        var label: String
+        var url: String
+        var expected: WebVideoSite?
+        var testDescription: String { label }
+    }
+
+    @Test(arguments: [
+        SiteRow(label: "YouTube video (guard)", url: "https://www.youtube.com/watch?v=\(id)", expected: .youtube),
+        SiteRow(label: "YouTube playlist (guard)", url: "https://www.youtube.com/playlist?list=\(list)", expected: .youtube),
+        SiteRow(label: "Facebook reel", url: "https://www.facebook.com/reel/123", expected: .facebook),
+        SiteRow(label: "fb.watch", url: "https://fb.watch/AbC1", expected: .facebook),
+        SiteRow(label: "Facebook profile", url: "https://www.facebook.com/somepage", expected: nil),
+        SiteRow(label: "plain file", url: "https://example.com/a.mp4", expected: nil),
+    ])
+    func t19_02_findsTheVideoSite(row: SiteRow) throws {
+        let url = try #require(URL(string: row.url))
+        #expect(WebVideoLinks.site(of: url) == row.expected)
+    }
+
+    /// The sign-in file only ever names the site the address belongs to.
+    @Test func t19_02_cookieDomains() {
+        #expect(WebVideoSite.youtube.cookieDomain == ".youtube.com")
+        #expect(WebVideoSite.facebook.cookieDomain == ".facebook.com")
+    }
+
     // MARK: T17-02
 
     struct FormatRow: Sendable, CustomTestStringConvertible {
@@ -117,15 +201,23 @@ import Testing
         FailureRow(label: "bot check, curly apostrophe", stderr: "ERROR: [youtube] \(id): Sign in to confirm you\u{2019}re not a bot.\n", code: 1, expected: YtDlp.botCheckMessage),
         FailureRow(label: "bot check not on the last error line", stderr: "ERROR: [youtube] \(id): Sign in to confirm you\u{2019}re not a bot.\nERROR: something else\n", code: 1, expected: YtDlp.botCheckMessage),
         FailureRow(label: "too many requests stays raw", stderr: "ERROR: [youtube] \(id): HTTP Error 429: Too Many Requests\n", code: 1, expected: "HTTP Error 429: Too Many Requests"),
+        // T19-10
+        FailureRow(label: "Facebook sign-in needed", stderr: "ERROR: [facebook] 123: This video is only available for registered users. Use --cookies-from-browser or --cookies for the authentication. See  https://github.com/yt-dlp/yt-dlp/wiki/FAQ#how-do-i-pass-cookies-to-yt-dlp  for how to manually pass cookies\n", code: 1, expected: YtDlp.signInMessage),
+        FailureRow(label: "sign-in not on the last line", stderr: "WARNING: [facebook] slow\nERROR: [facebook] 123: This video is only available for registered users.\n[download] 0%\n", code: 1, expected: YtDlp.signInMessage),
+        FailureRow(label: "sign-in without the error prefix", stderr: "This video is only available for registered users\n", code: 1, expected: YtDlp.signInMessage),
+        FailureRow(label: "bot check wins over sign-in (guard)", stderr: "ERROR: [youtube] \(id): only available for registered users\nERROR: [youtube] \(id): Sign in to confirm you're not a bot.\n", code: 1, expected: YtDlp.botCheckMessage),
+        FailureRow(label: "other Facebook error stays raw (guard)", stderr: "ERROR: [facebook] 123: Cannot parse data\n", code: 1, expected: "Cannot parse data"),
     ])
     func t17_04_failureMessages(row: FailureRow) {
         #expect(YtDlp.failureMessage(stderr: row.stderr, exitCode: row.code) == row.expected)
     }
 
     /// T18-04: yt-dlp now comes with the app, so the advice is to reinstall it first.
+    /// T19-06: it does the Facebook downloads too; the bot check stays YouTube's own.
     @Test func t17_04_fixedMessages() {
-        #expect(YtDlp.missingMessage == "YouTube downloads need yt-dlp, which comes with cDownloader. Reinstall cDownloader, or install it with Homebrew: brew install yt-dlp")
+        #expect(YtDlp.missingMessage == "YouTube and Facebook downloads need yt-dlp, which comes with cDownloader. Reinstall cDownloader, or install it with Homebrew: brew install yt-dlp")
         #expect(YtDlp.botCheckMessage == "YouTube asked to confirm you're not a bot. Start the download from the browser add-on, which passes your YouTube sign-in, or choose a browser under Settings > Video Sites.")
+        #expect(YtDlp.signInMessage.contains("signed in") && YtDlp.signInMessage.contains("Settings > Video Sites"))
     }
 
     // MARK: T17-07 (search path)
@@ -297,6 +389,8 @@ import Testing
         var header: String?
         /// Expected (name, value) lines; nil means no file at all.
         var pairs: [(String, String)]?
+        /// T19-03: the site whose sign-in this is.
+        var site = WebVideoSite.youtube
         var testDescription: String { label }
     }
 
@@ -316,14 +410,19 @@ import Testing
         CookieRow(label: "empty", header: "", pairs: nil),
         CookieRow(label: "only separators", header: " ;; ", pairs: nil),
         CookieRow(label: "nothing valid", header: "=1; ;", pairs: nil),
+        // T19-03
+        CookieRow(label: "Facebook sign-in", header: "c_user=1; xs=2", pairs: [("c_user", "1"), ("xs", "2")], site: .facebook),
+        CookieRow(label: "Facebook, nothing usable (guard)", header: "", pairs: nil, site: .facebook),
     ])
     func t17_16_cookieFileText(row: CookieRow) {
-        let text = YtDlp.cookieFile(header: row.header)
+        let text = YtDlp.cookieFile(header: row.header, site: row.site)
         guard let pairs = row.pairs else {
             #expect(text == nil)
             return
         }
-        let lines = pairs.map { ".youtube.com\tTRUE\t/\tTRUE\t4102444800\t\($0.0)\t\($0.1)" }
+        if row.site != .youtube { #expect(text?.contains("youtube") == false, "a sign-in never names another site") }
+        let domain = row.site == .youtube ? ".youtube.com" : ".facebook.com"
+        let lines = pairs.map { "\(domain)\tTRUE\t/\tTRUE\t4102444800\t\($0.0)\t\($0.1)" }
         #expect(text == (["# Netscape HTTP Cookie File"] + lines).joined(separator: "\n") + "\n")
         for line in text?.split(separator: "\n").dropFirst() ?? [] {
             #expect(line.split(separator: "\t", omittingEmptySubsequences: false).count == 7)
@@ -566,7 +665,7 @@ import Testing
         let second = start(engine, paused)
         let done = try await second.recorder.waitForFinish()
         #expect(done.status == .completed)
-        #expect(fake.recorded("cookies-seen.txt") == YtDlp.cookieFile(header: "SID=\(Self.secret)"), "the cookie file is written again on resume")
+        #expect(fake.recorded("cookies-seen.txt") == YtDlp.cookieFile(header: "SID=\(Self.secret)", site: .youtube), "the cookie file is written again on resume")
     }
 
     /// T17-CR01: a pause that lands while yt-dlp is being started still stops it.
@@ -628,6 +727,8 @@ import Testing
         var browser: String?
         var expectedFile: Bool
         var expectedBrowser: String?
+        /// T19-05: the site whose domain the sign-in file names.
+        var site = WebVideoSite.youtube
         var testDescription: String { label }
     }
 
@@ -638,6 +739,11 @@ import Testing
         CookieRunRow(label: "neither", expectedFile: false),
         CookieRunRow(label: "unusable header falls back to the browser", cookies: "junk", browser: "chrome", expectedFile: false, expectedBrowser: "chrome"),
         CookieRunRow(label: "never sent to other sites", url: "https://video.example/watch?v=1", cookies: "SID=\(secret)", expectedFile: false),
+        // T19-05
+        CookieRunRow(label: "Facebook sign-in", url: "https://www.facebook.com/watch/?v=1", cookies: "c_user=\(secret); xs=2", expectedFile: true, site: .facebook),
+        CookieRunRow(label: "fb.watch sign-in", url: "https://fb.watch/AbC1/", cookies: "c_user=\(secret)", expectedFile: true, site: .facebook),
+        CookieRunRow(label: "Facebook page that is not a video (guard)", url: "https://www.facebook.com/somepage", cookies: "c_user=\(secret)", expectedFile: false),
+        CookieRunRow(label: "Facebook without sign-in uses the browser setting (guard)", url: "https://www.facebook.com/reel/1", browser: "chrome", expectedFile: false, expectedBrowser: "chrome"),
     ])
     func t17_17_passesTheYouTubeSignIn(row: CookieRunRow) async throws {
         let fake = try FakeYtDlp()
@@ -651,7 +757,7 @@ import Testing
         #expect(arguments.contains("--cookies") == row.expectedFile)
         if row.expectedFile {
             #expect(arguments.contains(cookieFile))
-            #expect(fake.recorded("cookies-seen.txt") == YtDlp.cookieFile(header: row.cookies))
+            #expect(fake.recorded("cookies-seen.txt") == YtDlp.cookieFile(header: row.cookies, site: row.site))
             #expect(fake.recorded("cookies-mode.txt") == "600", "only the user can read the sign-in")
         } else {
             #expect(fake.recorded("cookies-seen.txt") == nil)

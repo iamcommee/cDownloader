@@ -9,9 +9,10 @@ public struct IncomingDownload: Codable, Sendable, Equatable {
     public var userAgent: String?
     public var mimeType: String?
     public var fileSize: Int64?
-    /// "hls" for stream playlists, "youtube" for YouTube pages, otherwise a normal file.
+    /// "hls" for stream playlists, "webvideo" for YouTube and Facebook video pages ("youtube" from older add-ons),
+    /// otherwise a normal file. Video pages are recognized by their address, so this is a hint only.
     public var kind: String?
-    /// For YouTube: a `VideoQuality` raw value ("best", "720", "audio" and so on); nil uses the app's default.
+    /// For video pages: a `VideoQuality` raw value ("best", "720", "audio" and so on); nil uses the app's default.
     public var quality: String?
 
     public init(url: URL, referer: String? = nil, fileName: String? = nil, cookies: String? = nil, userAgent: String? = nil, mimeType: String? = nil, fileSize: Int64? = nil, kind: String? = nil, quality: String? = nil) {

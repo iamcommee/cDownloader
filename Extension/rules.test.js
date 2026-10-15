@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { wildcardMatch, shouldIntercept, isMediaResponse, extensionOf, displayName, formatSize, describeMedia, panelPosition, menuPlacement, youtubeLink, videoQualities, qualityLabel } from './rules.js';
+import { wildcardMatch, shouldIntercept, isMediaResponse, extensionOf, displayName, formatSize, describeMedia, panelPosition, menuPlacement, youtubeLink, facebookVideoLink, webVideoLink, videoQualities, qualityLabel } from './rules.js';
 
 const base = { integrationEnabled: true, extensions: ['zip', 'pdf', 'r0*'], dontCaptureSites: [], addressExceptions: [] };
 
@@ -54,6 +54,14 @@ const mediaRows = [
   ['look-alike host (guard)', { url: 'https://evilgooglevideo.com/videoplayback', headers: { 'content-type': 'video/mp4', 'content-length': big } }, { media: true, kind: 'video', protected: false }],
   ['look-alike suffix (guard)', { url: 'https://googlevideo.com.evil.example/videoplayback', headers: { 'content-type': 'video/mp4', 'content-length': big } }, { media: true, kind: 'video', protected: false }],
   ['other googlevideo path (guard)', { url: 'https://r1.googlevideo.com/other.mp4', headers: { 'content-type': 'video/mp4', 'content-length': big } }, { media: true, kind: 'video', protected: false }],
+  // T19-09: Facebook and Instagram fetch picture and sound in byte ranges named in the address.
+  ['facebook piece', { url: 'https://video.fsgn2-1.fna.fbcdn.net/o1/v/t2/f2/m69/x.mp4?strext=1&bytestart=0&byteend=999', headers: { 'content-type': 'video/mp4', 'content-length': big } }, { media: false, kind: null, protected: false }],
+  ['facebook piece, params reversed with others between', { url: 'https://video.xx.fbcdn.net/v/x.mp4?byteend=999&_nc_cat=1&bytestart=0', headers: { 'content-type': 'video/mp4', 'content-length': big } }, { media: false, kind: null, protected: false }],
+  ['instagram piece', { url: 'https://scontent.cdninstagram.com/v/t50/x.mp4?bytestart=0&byteend=9', headers: { 'content-type': 'audio/mp4', 'content-length': big } }, { media: false, kind: null, protected: false }],
+  ['whole facebook file (guard)', { url: 'https://video.xx.fbcdn.net/v/x.mp4?_nc_cat=1', headers: { 'content-type': 'video/mp4', 'content-length': big } }, { media: true, kind: 'video', protected: false }],
+  ['only bytestart (guard)', { url: 'https://video.xx.fbcdn.net/v/x.mp4?bytestart=0', headers: { 'content-type': 'video/mp4', 'content-length': big } }, { media: true, kind: 'video', protected: false }],
+  ['only byteend (guard)', { url: 'https://video.xx.fbcdn.net/v/x.mp4?byteend=9', headers: { 'content-type': 'video/mp4', 'content-length': big } }, { media: true, kind: 'video', protected: false }],
+  ['range names only in values (guard)', { url: 'https://v.example/x.mp4?foo=bytestart&x=byteend', headers: { 'content-type': 'video/mp4', 'content-length': big } }, { media: true, kind: 'video', protected: false }],
 ];
 
 for (const [label, response, expected] of mediaRows) {
@@ -303,6 +311,91 @@ test('T17-13 youtubeLink: junk input never throws', () => {
   for (const input of [undefined, null, 42, {}, '', 'not a url', 'javascript:alert(1)']) {
     assert.doesNotThrow(() => youtubeLink(input));
     assert.equal(youtubeLink(input), null);
+  }
+});
+
+// T19-07: the same addresses as the app's T19-01 rows (YtDlpTests.swift), so both sides agree.
+const fbVideo = (url) => ({ type: 'video', url });
+const facebookRows = [
+  ['watch', 'https://www.facebook.com/watch?v=1', fbVideo('https://www.facebook.com/watch?v=1')],
+  ['watch with slash', 'https://www.facebook.com/watch/?v=1', fbVideo('https://www.facebook.com/watch/?v=1')],
+  ['mobile watch', 'https://m.facebook.com/watch/?v=1', fbVideo('https://m.facebook.com/watch/?v=1')],
+  ['live', 'https://web.facebook.com/watch/live/?v=1', fbVideo('https://web.facebook.com/watch/live/?v=1')],
+  ['video.php without www', 'https://facebook.com/video.php?v=1', fbVideo('https://facebook.com/video.php?v=1')],
+  ['video/video.php', 'https://www.facebook.com/video/video.php?v=1', fbVideo('https://www.facebook.com/video/video.php?v=1')],
+  ['page video', 'https://www.facebook.com/page/videos/123', fbVideo('https://www.facebook.com/page/videos/123')],
+  ['page video with slash', 'https://www.facebook.com/page/videos/123/', fbVideo('https://www.facebook.com/page/videos/123/')],
+  ['page video with slug', 'https://www.facebook.com/page/videos/some-slug/123', fbVideo('https://www.facebook.com/page/videos/some-slug/123')],
+  ['mbasic', 'https://mbasic.facebook.com/page/videos/123', fbVideo('https://mbasic.facebook.com/page/videos/123')],
+  ['business', 'https://business.facebook.com/page/videos/123', fbVideo('https://business.facebook.com/page/videos/123')],
+  ['reel', 'https://www.facebook.com/reel/123', fbVideo('https://www.facebook.com/reel/123')],
+  ['shared video', 'https://www.facebook.com/share/v/AbC1/', fbVideo('https://www.facebook.com/share/v/AbC1/')],
+  ['shared reel', 'https://www.facebook.com/share/r/AbC1', fbVideo('https://www.facebook.com/share/r/AbC1')],
+  ['embedded player', 'https://www.facebook.com/plugins/video.php?href=https%3A%2F%2Fwww.facebook.com%2Fpage%2Fvideos%2F123%2F', fbVideo('https://www.facebook.com/plugins/video.php?href=https%3A%2F%2Fwww.facebook.com%2Fpage%2Fvideos%2F123%2F')],
+  ['fb.watch', 'https://fb.watch/AbC1/', fbVideo('https://fb.watch/AbC1/')],
+  ['http scheme', 'http://www.facebook.com/reel/123', fbVideo('http://www.facebook.com/reel/123')],
+  ['uppercase host', 'HTTPS://WWW.FaceBook.COM/reel/123', fbVideo('https://www.facebook.com/reel/123')],
+  ['hash dropped, query kept', 'https://www.facebook.com/watch/?v=1#t=5', fbVideo('https://www.facebook.com/watch/?v=1')],
+  ['home', 'https://www.facebook.com/', null],
+  ['profile', 'https://www.facebook.com/somepage', null],
+  ['post', 'https://www.facebook.com/page/posts/123', null],
+  ['photo', 'https://www.facebook.com/photo.php?fbid=1', null],
+  ['shared post', 'https://www.facebook.com/share/p/AbC1', null],
+  ['videos without a page', 'https://www.facebook.com/videos/', null],
+  ['videos tab', 'https://www.facebook.com/page/videos/', null],
+  ['videos slug without id', 'https://www.facebook.com/page/videos/some-slug', null],
+  ['watch without v', 'https://www.facebook.com/watch/', null],
+  ['watch with empty v', 'https://www.facebook.com/watch/?v=', null],
+  ['reel without id', 'https://www.facebook.com/reel/', null],
+  ['reel with letters', 'https://www.facebook.com/reel/abc', null],
+  ['share without code', 'https://www.facebook.com/share/v/', null],
+  ['embedded player without href', 'https://www.facebook.com/plugins/video.php', null],
+  ['fb.watch without code', 'https://fb.watch/', null],
+  ['look-alike prefix (guard)', 'https://evilfacebook.com/watch/?v=1', null],
+  ['look-alike suffix (guard)', 'https://facebook.com.evil.example/watch/?v=1', null],
+  ['look-alike short (guard)', 'https://evilfb.watch/AbC1', null],
+  ['look-alike short suffix (guard)', 'https://fb.watch.evil.example/AbC1', null],
+  ['ftp scheme (guard)', 'ftp://www.facebook.com/reel/123', null],
+  ['file scheme (guard)', 'file:///reel/123', null],
+  ['video piece (guard)', 'https://video.xx.fbcdn.net/v/a.mp4', null],
+  ['YouTube (guard)', `https://www.youtube.com/watch?v=${ytId}`, null],
+];
+
+for (const [label, url, expected] of facebookRows) {
+  test(`T19-07 facebookVideoLink: ${label}`, () => {
+    assert.deepEqual(facebookVideoLink(url), expected);
+  });
+}
+
+test('T19-07 facebookVideoLink: junk input never throws', () => {
+  for (const input of [undefined, null, 42, {}, '', 'not a url', 'javascript:alert(1)']) {
+    assert.doesNotThrow(() => facebookVideoLink(input));
+    assert.equal(facebookVideoLink(input), null);
+  }
+});
+
+// T19-08: one answer for both sites, with the address whose sign-in goes along.
+const youtubeCookies = 'https://www.youtube.com/';
+const facebookCookies = 'https://www.facebook.com/';
+const webVideoRows = [
+  ['YouTube video', `https://youtu.be/${ytId}`, { site: 'youtube', type: 'video', url: `https://www.youtube.com/watch?v=${ytId}`, cookieUrl: youtubeCookies }],
+  ['YouTube playlist', `https://www.youtube.com/playlist?list=${ytList}`, { site: 'youtube', type: 'playlist', url: `https://www.youtube.com/playlist?list=${ytList}`, cookieUrl: youtubeCookies }],
+  ['Facebook reel', 'https://www.facebook.com/reel/123', { site: 'facebook', type: 'video', url: 'https://www.facebook.com/reel/123', cookieUrl: facebookCookies }],
+  ['fb.watch', 'https://fb.watch/AbC1/', { site: 'facebook', type: 'video', url: 'https://fb.watch/AbC1/', cookieUrl: facebookCookies }],
+  ['Facebook profile', 'https://www.facebook.com/somepage', null],
+  ['plain file', 'https://example.com/a.mp4', null],
+];
+
+for (const [label, url, expected] of webVideoRows) {
+  test(`T19-08 webVideoLink: ${label}`, () => {
+    assert.deepEqual(webVideoLink(url), expected);
+  });
+}
+
+test('T19-08 webVideoLink: junk input never throws', () => {
+  for (const input of [undefined, null, 42, {}, '', 'not a url', 'javascript:alert(1)']) {
+    assert.doesNotThrow(() => webVideoLink(input));
+    assert.equal(webVideoLink(input), null);
   }
 });
 

@@ -14,7 +14,7 @@ public enum DownloadKind: Codable, Sendable, Equatable {
     case file
     /// An HLS stream; `variantIndex` nil means "highest bandwidth".
     case hls(variantIndex: Int?)
-    /// A video page (YouTube) that yt-dlp turns into a file of the chosen quality.
+    /// A video page (YouTube or Facebook) that yt-dlp turns into a file of the chosen quality.
     case webVideo(quality: VideoQuality)
 }
 

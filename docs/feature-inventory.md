@@ -34,6 +34,7 @@ None of IDM's program code, artwork or name is used in cDownloader. Only the beh
 | Video download panel | A button over web players when a video is detected | Same; DRM-protected videos are labeled and never downloaded | `Extension/content.js` |
 | Stream downloading | Downloads video streams | HLS (`.m3u8`) including AES-128 encryption; DASH is detected but not downloaded yet | `HLS/` |
 | YouTube | Downloads YouTube videos from the video panel | Videos, Shorts and playlists in a chosen quality (best to 360p, or sound only) through yt-dlp, which comes with the app and updates itself daily; the YouTube sign-in from the add-on is passed along | `WebVideo/`, `Extension/content.js` |
+| Facebook | Downloads Facebook videos from the video panel | Videos and reels in a chosen quality through the same yt-dlp, from video pages, feed posts that link to their video, right-clicked links and addresses pasted into the app; Facebook's own byte-range pieces are not offered as videos; the Facebook sign-in from the add-on is passed along | `WebVideo/FacebookLinks.swift`, `Extension/rules.js`, `Extension/content.js` |
 | Video conversion | Converts downloaded video | `.ts` streams become `.mp4` when ffmpeg is installed | `StreamConverter` in `Services.swift` |
 | Clipboard monitoring | Offers to download a copied link of a known type | Same, once per copy | `Input/ClipboardFilter.swift` |
 | Drag and drop, drop target | Drop links on the window or a floating target | Same; finished files can be dragged out | `MainView.swift`, `ProgressViews.swift` |

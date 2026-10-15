@@ -413,36 +413,36 @@ struct BrowserSettingsView: View {
     }
 }
 
-/// YouTube downloads: whether the tools are installed, the default quality, and where the sign-in comes from.
+/// YouTube and Facebook downloads: whether the tools are installed, the default quality, and where the sign-in comes from.
 struct VideoSiteSettings: View {
     @Environment(AppModel.self) private var model
 
-    /// Browsers yt-dlp can read a YouTube sign-in from, by the name it expects.
+    /// Browsers yt-dlp can read a YouTube or Facebook sign-in from, by the name it expects.
     private static let browsers: [(name: String, title: String)] = [
         ("chrome", "Chrome"), ("brave", "Brave"), ("edge", "Microsoft Edge"), ("vivaldi", "Vivaldi"), ("safari", "Safari"), ("firefox", "Firefox"),
     ]
 
     var body: some View {
         Form {
-            Section("YouTube") {
+            Section("YouTube and Facebook") {
                 LabeledContent("yt-dlp") {
                     Text(ytDlpStatus).foregroundStyle(.secondary)
                 }
                 LabeledContent("ffmpeg") {
                     Text(ffmpegStatus).foregroundStyle(.secondary)
                 }
-                Text("cDownloader comes with yt-dlp, the free tool that does the YouTube downloads, and with ffmpeg, which joins picture and sound into one file. YouTube changes often, so cDownloader looks for a newer yt-dlp once a day by itself.")
+                Text("cDownloader comes with yt-dlp, the free tool that does the YouTube and Facebook downloads, and with ffmpeg, which joins picture and sound into one file. YouTube changes often, so cDownloader looks for a newer yt-dlp once a day by itself.")
                     .font(.caption).foregroundStyle(.secondary)
             }
             Section("Downloads") {
                 Picker("Default quality", selection: model.setting(\.webVideoQuality)) {
                     ForEach(VideoQuality.allCases, id: \.self) { quality in Text(quality.label).tag(quality) }
                 }
-                Picker("YouTube sign-in for addresses added here", selection: model.setting(\.webVideoCookiesBrowser)) {
+                Picker("Sign-in for addresses added here", selection: model.setting(\.webVideoCookiesBrowser)) {
                     Text("None").tag(String?.none)
                     ForEach(Self.browsers, id: \.name) { browser in Text(browser.title).tag(String?.some(browser.name)) }
                 }
-                Text("Downloads started from the browser add-on use your YouTube sign-in automatically. For addresses added in the app, yt-dlp can read the sign-in from the browser chosen here; macOS may ask for your password the first time.")
+                Text("Downloads started from the browser add-on use your YouTube or Facebook sign-in automatically. For addresses added in the app, yt-dlp can read the sign-in from the browser chosen here; macOS may ask for your password the first time.")
                     .font(.caption).foregroundStyle(.secondary)
             }
         }

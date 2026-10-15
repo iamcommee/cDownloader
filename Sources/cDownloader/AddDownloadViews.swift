@@ -73,7 +73,9 @@ struct DownloadInfoSheet: View {
                     Text(item.url.absoluteString).lineLimit(2).truncationMode(.middle).textSelection(.enabled)
                 }
                 LabeledContent("Size") {
-                    if case .webVideo = item.kind {
+                    if case .webVideo = item.kind, WebVideoLinks.site(of: item.url) == .facebook {
+                        Text("Facebook video (size known once downloaded)")
+                    } else if case .webVideo = item.kind {
                         Text("YouTube video (size known once downloaded)")
                     } else if item.kind != .file {
                         Text("Video stream (size known once downloaded)")

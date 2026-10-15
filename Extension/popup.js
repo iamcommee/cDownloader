@@ -1,5 +1,5 @@
 // Popup: connection status, the on/off switch, and media found on the current tab.
-import { describeMedia, youtubeLink, qualityLabel } from './rules.js';
+import { describeMedia, webVideoLink, qualityLabel } from './rules.js';
 
 const statusBadge = document.getElementById('status');
 const statusText = document.getElementById('status-text');
@@ -74,18 +74,20 @@ function row(item) {
   return element;
 }
 
-// The YouTube video or playlist open in this tab; the app downloads it through yt-dlp at its default quality.
-function youtubeRow(link, title, quality) {
+// The YouTube or Facebook video (or YouTube playlist) open in this tab; the app downloads it through yt-dlp
+// at its default quality.
+function videoPageRow(link, title, quality) {
   const element = document.createElement('div');
   element.className = 'list-row';
   element.innerHTML = `<span class="licon red">${icons.video}</span><div class="ltext"><div class="lname"></div><span></span></div>`;
   const text = element.querySelector('.ltext');
   text.title = link.url;
-  const cleanTitle = String(title || '').replace(/^\(\d+\)\s*/, '').replace(/\s+-\s+YouTube$/, '');
+  const site = link.site === 'facebook' ? 'Facebook' : 'YouTube';
+  const cleanTitle = String(title || '').replace(/^\(\d+\)\s*/, '').replace(/\s+[-|]\s+(YouTube|Facebook)$/, '');
   const playlist = link.type === 'playlist';
-  text.querySelector('.lname').textContent = cleanTitle || (playlist ? 'YouTube playlist' : 'YouTube video');
-  text.querySelector('span').textContent = playlist ? 'YouTube playlist · Every video' : `YouTube · ${qualityLabel(quality)}`;
-  element.appendChild(sendButton({ url: link.url, kind: 'youtube' }, playlist ? 'Add all' : 'Download', playlist ? 'Add every video of this playlist' : 'Download this YouTube video'));
+  text.querySelector('.lname').textContent = cleanTitle || (playlist ? 'YouTube playlist' : `${site} video`);
+  text.querySelector('span').textContent = playlist ? 'YouTube playlist · Every video' : `${site} · ${qualityLabel(quality)}`;
+  element.appendChild(sendButton({ url: link.url, kind: 'webvideo' }, playlist ? 'Add all' : 'Download', playlist ? 'Add every video of this playlist' : `Download this ${site} video`));
   return element;
 }
 
@@ -131,8 +133,8 @@ async function load() {
   const key = keyNames[state.config.skipModifier];
   skipHint.hidden = !key;
   if (key) skipKey.textContent = key;
-  const youtube = youtubeLink(tab?.url);
-  const rows = [...(youtube ? [youtubeRow(youtube, tab.title, state.config.webVideoQuality)] : []), ...[...state.media].reverse().map(row)];
+  const video = webVideoLink(tab?.url);
+  const rows = [...(video ? [videoPageRow(video, tab.title, state.config.webVideoQuality)] : []), ...[...state.media].reverse().map(row)];
   if (rows.length) {
     list.replaceChildren(...rows);
     count.textContent = String(rows.length);

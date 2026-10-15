@@ -165,9 +165,9 @@ public struct AppSettings: Codable, Sendable, Equatable {
     public var sounds = SoundSettings()
     public var speedLimiter = SpeedLimiterSettings()
     public var browser = BrowserSettings()
-    // Video sites (YouTube, through yt-dlp)
+    // Video sites (YouTube and Facebook, through yt-dlp)
     public var webVideoQuality: VideoQuality = .best
-    /// Browser whose YouTube sign-in yt-dlp may read for links added in the app ("chrome", "safari" ...); nil for none.
+    /// Browser whose YouTube or Facebook sign-in yt-dlp may read for links added in the app ("chrome", "safari" ...); nil for none.
     public var webVideoCookiesBrowser: String?
 
     public init() {}

@@ -109,6 +109,13 @@ final class ServerBag: @unchecked Sendable {
         MakeRow(label: "YouTube short link", incoming: IncomingDownload(url: URL(string: "https://youtu.be/dQw4w9WgXcQ")!), category: "Video", kind: .webVideo(quality: .best)),
         MakeRow(label: "YouTube channel stays a page (guard)", incoming: IncomingDownload(url: URL(string: "https://www.youtube.com/@x")!), name: "", category: "General", kind: .file),
         MakeRow(label: "quality ignored elsewhere (guard)", incoming: IncomingDownload(url: URL(string: "https://h/a.zip")!, quality: "720"), name: "a.zip", category: "Compressed", kind: .file),
+        // T19-04
+        MakeRow(label: "Facebook video, default quality", incoming: IncomingDownload(url: URL(string: "https://www.facebook.com/watch/?v=1")!), name: "", category: "Video", kind: .webVideo(quality: .p480), settingsQuality: .p480),
+        MakeRow(label: "Facebook reel, chosen quality wins", incoming: IncomingDownload(url: URL(string: "https://www.facebook.com/reel/1")!, quality: "720"), category: "Video", kind: .webVideo(quality: .p720)),
+        MakeRow(label: "fb.watch short link", incoming: IncomingDownload(url: URL(string: "https://fb.watch/AbC1/")!), name: "", category: "Video", kind: .webVideo(quality: .best)),
+        MakeRow(label: "Facebook profile stays a page (guard)", incoming: IncomingDownload(url: URL(string: "https://www.facebook.com/somepage")!), name: "", category: "General", kind: .file),
+        MakeRow(label: "Facebook post stays a page (guard)", incoming: IncomingDownload(url: URL(string: "https://www.facebook.com/page/posts/1")!), name: "", category: "General", kind: .file),
+        MakeRow(label: "Facebook photo stays a page (guard)", incoming: IncomingDownload(url: URL(string: "https://www.facebook.com/photo.php?fbid=1")!), name: "", category: "General", kind: .file),
     ])
     func t15_01_makeItemRules(row: MakeRow) {
         let (library, _) = makeLibrary()
@@ -440,7 +447,7 @@ final class ServerBag: @unchecked Sendable {
             #expect(Array(arguments.suffix(2)) == ["--", Self.playlistURL])
             if row.cookies != nil {
                 #expect(arguments.contains("--cookies") && !arguments.contains("--cookies-from-browser"))
-                #expect(fake.recorded("cookies-seen.txt") == YtDlp.cookieFile(header: row.cookies))
+                #expect(fake.recorded("cookies-seen.txt") == YtDlp.cookieFile(header: row.cookies, site: .youtube))
                 #expect(fake.recorded("cookies-mode.txt") == "600")
                 let cookieFile = try #require(arguments.firstIndex(of: "--cookies").map { arguments[$0 + 1] })
                 #expect(!FileManager.default.fileExists(atPath: cookieFile), "the sign-in file is deleted after the listing")

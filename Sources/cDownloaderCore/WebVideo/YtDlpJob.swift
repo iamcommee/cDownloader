@@ -1,8 +1,8 @@
 import Foundation
 
-/// Downloads a YouTube video by running yt-dlp in a work folder of its own, then moves the finished file
-/// into the download folder. Pausing stops yt-dlp; its partial file stays in the work folder and the next
-/// start continues it. The YouTube sign-in from the browser add-on is handed over in a cookie file that only
+/// Downloads a YouTube or Facebook video by running yt-dlp in a work folder of its own, then moves the finished
+/// file into the download folder. Pausing stops yt-dlp; its partial file stays in the work folder and the next
+/// start continues it. The site's sign-in from the browser add-on is handed over in a cookie file that only
 /// the user can read and that is deleted as soon as yt-dlp stops.
 public final class YtDlpJob: DownloadRunner, @unchecked Sendable {
     public let id: UUID
@@ -79,8 +79,7 @@ public final class YtDlpJob: DownloadRunner, @unchecked Sendable {
         guard let tool = configuration.ytDlpPath ?? YtDlp.locate(), FileManager.default.isExecutableFile(atPath: tool) else {
             return failed(YtDlp.missingMessage)
         }
-        let link = YouTubeLinks.classify(current.url)
-        if case .playlist = link { return failed(YtDlp.playlistMessage) }
+        if case .playlist = YouTubeLinks.classify(current.url) { return failed(YtDlp.playlistMessage) }
         var quality = VideoQuality.best
         if case .webVideo(let chosen) = current.kind { quality = chosen }
 
@@ -89,9 +88,9 @@ public final class YtDlpJob: DownloadRunner, @unchecked Sendable {
         } catch {
             return failed("Cannot create the work folder: \(error.localizedDescription)")
         }
-        // The sign-in only ever goes to YouTube itself.
+        // The sign-in only ever goes to the video's own site.
         var cookiesFile: URL?
-        if link != nil, let text = YtDlp.cookieFile(header: current.cookies) {
+        if let site = WebVideoLinks.site(of: current.url), let text = YtDlp.cookieFile(header: current.cookies, site: site) {
             try? FileManager.default.removeItem(at: cookieFileURL)
             if FileManager.default.createFile(atPath: cookieFileURL.path, contents: Data(text.utf8), attributes: [.posixPermissions: 0o600]) {
                 cookiesFile = cookieFileURL

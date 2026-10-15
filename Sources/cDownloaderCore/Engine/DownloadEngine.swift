@@ -17,9 +17,9 @@ public struct EngineConfiguration: Sendable {
     public var maxRedirects = 10
     /// ffmpeg, used to join separate sound tracks and to turn .ts streams into .mp4; nil turns that off.
     public var ffmpegPath: String?
-    /// yt-dlp, used for YouTube; nil when it is not installed (such downloads then fail with install advice).
+    /// yt-dlp, used for YouTube and Facebook; nil when it is not installed (such downloads then fail with install advice).
     public var ytDlpPath: String?
-    /// Browser whose YouTube sign-in yt-dlp reads when the browser add-on sent none.
+    /// Browser whose YouTube or Facebook sign-in yt-dlp reads when the browser add-on sent none.
     public var ytDlpCookiesBrowser: String?
     /// The environment outside tools (yt-dlp) start with; their search path is extended from it.
     public var toolEnvironment = ProcessInfo.processInfo.environment
